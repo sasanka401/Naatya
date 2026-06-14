@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NAATYA - Cast & Crew</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="wrapper">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-icon"><i class="bi bi-masks-theater"></i></div>
+        <span class="sidebar-brand-text">NAATYA</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Main</div>
+        <a href="dashboard.html" class="sidebar-link">
+          <i class="bi bi-grid-1x2"></i> Dashboard
+        </a>
+        <a href="members.html" class="sidebar-link active">
+          <i class="bi bi-people"></i> Cast & Crew
+        </a>
+        <a href="inventory.html" class="sidebar-link">
+          <i class="bi bi-box-seam"></i> Inventory
+        </a>
+        <a href="rehearsals.html" class="sidebar-link">
+          <i class="bi bi-calendar-event"></i> Rehearsals
+        </a>
+        <div class="nav-section-title">System</div>
+        <a href="security.html" class="sidebar-link">
+          <i class="bi bi-shield-check"></i> Security
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="#" class="sidebar-link btn-logout">
+          <i class="bi bi-box-arrow-left"></i> Logout
+        </a>
+      </div>
+    </aside>
+
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="top-navbar">
+        <div class="d-flex align-items-center gap-3">
+          <button id="sidebarToggle" class="btn-sidebar-toggle"><i class="bi bi-list"></i></button>
+          <span class="page-title">Cast & Crew Management</span>
+        </div>
+        <div class="navbar-actions">
+          <div class="user-badge">
+            <span class="d-none d-sm-inline">Admin</span>
+            <div class="user-avatar">A</div>
+          </div>
+        </div>
+      </header>
+
+      <div class="content-area">
+        <div class="content-card">
+          <div class="card-header-custom">
+            <h5><i class="bi bi-people text-naatya-primary"></i> Cast & Crew Members</h5>
+            <div class="d-flex gap-2 flex-wrap">
+              <div class="search-bar">
+                <i class="bi bi-search"></i>
+                <input type="text" id="memberSearch" placeholder="Search members...">
+              </div>
+              <button id="btnAddMember" class="btn-primary-naatya">
+                <i class="bi bi-plus-lg me-1"></i> Add Member
+              </button>
+            </div>
+          </div>
+          <div class="card-body-custom p-0">
+            <div class="table-responsive">
+              <table class="table table-naatya mb-0">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Role</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="membersTableBody">
+                  <tr data-member-id="M1">
+                    <td>Arjun Mehta</td>
+                    <td>Director</td>
+                    <td>+91 98765 43210</td>
+                    <td><span class="badge-status badge-free">Free</span></td>
+                    <td>
+                      <button class="btn-action btn-action-edit me-1" title="Edit"><i class="bi bi-pencil"></i></button>
+                      <button class="btn-action btn-action-delete" title="Delete"><i class="bi bi-trash3"></i></button>
+                    </td>
+                  </tr>
+                  <tr data-member-id="M2">
+                    <td>Priya Sharma</td>
+                    <td>Lead Actress</td>
+                    <td>+91 87654 32109</td>
+                    <td><span class="badge-status badge-free">Free</span></td>
+                    <td>
+                      <button class="btn-action btn-action-edit me-1" title="Edit"><i class="bi bi-pencil"></i></button>
+                      <button class="btn-action btn-action-delete" title="Delete"><i class="bi bi-trash3"></i></button>
+                    </td>
+                  </tr>
+                  <tr data-member-id="M3">
+                    <td>Vikram Singh</td>
+                    <td>Stage Manager</td>
+                    <td>+91 76543 21098</td>
+                    <td><span class="badge-status badge-busy">Busy</span></td>
+                    <td>
+                      <button class="btn-action btn-action-edit me-1" title="Edit"><i class="bi bi-pencil"></i></button>
+                      <button class="btn-action btn-action-delete" title="Delete"><i class="bi bi-trash3"></i></button>
+                    </td>
+                  </tr>
+                  <tr data-member-id="M4">
+                    <td>Neha Gupta</td>
+                    <td>Costume Designer</td>
+                    <td>+91 65432 10987</td>
+                    <td><span class="badge-status badge-free">Free</span></td>
+                    <td>
+                      <button class="btn-action btn-action-edit me-1" title="Edit"><i class="bi bi-pencil"></i></button>
+                      <button class="btn-action btn-action-delete" title="Delete"><i class="bi bi-trash3"></i></button>
+                    </td>
+                  </tr>
+                  <tr data-member-id="M5">
+                    <td>Rahul Joshi</td>
+                    <td>Lighting Technician</td>
+                    <td>+91 54321 09876</td>
+                    <td><span class="badge-status badge-on-leave">On Leave</span></td>
+                    <td>
+                      <button class="btn-action btn-action-edit me-1" title="Edit"><i class="bi bi-pencil"></i></button>
+                      <button class="btn-action btn-action-delete" title="Delete"><i class="bi bi-trash3"></i></button>
+                    </td>
+                  </tr>
+                  <tr data-member-id="M6">
+                    <td>Ananya Reddy</td>
+                    <td>Supporting Actress</td>
+                    <td>+91 43210 98765</td>
+                    <td><span class="badge-status badge-free">Free</span></td>
+                    <td>
+                      <button class="btn-action btn-action-edit me-1" title="Edit"><i class="bi bi-pencil"></i></button>
+                      <button class="btn-action btn-action-delete" title="Delete"><i class="bi bi-trash3"></i></button>
+                    </td>
+                  </tr>
+                  <tr data-member-id="M7">
+                    <td>Karan Patel</td>
+                    <td>Sound Engineer</td>
+                    <td>+91 32109 87654</td>
+                    <td><span class="badge-status badge-busy">Busy</span></td>
+                    <td>
+                      <button class="btn-action btn-action-edit me-1" title="Edit"><i class="bi bi-pencil"></i></button>
+                      <button class="btn-action btn-action-delete" title="Delete"><i class="bi bi-trash3"></i></button>
+                    </td>
+                  </tr>
+                  <tr data-member-id="M8">
+                    <td>Deepika Nair</td>
+                    <td>Makeup Artist</td>
+                    <td>+91 21098 76543</td>
+                    <td><span class="badge-status badge-free">Free</span></td>
+                    <td>
+                      <button class="btn-action btn-action-edit me-1" title="Edit"><i class="bi bi-pencil"></i></button>
+                      <button class="btn-action btn-action-delete" title="Delete"><i class="bi bi-trash3"></i></button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Member Modal -->
+  <div class="modal fade" id="memberModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="memberModalLabel">Add New Member</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="memberForm">
+            <input type="hidden" id="memberId">
+            <div class="mb-3">
+              <label for="memberName" class="form-label">Full Name</label>
+              <input type="text" class="form-control" id="memberName" placeholder="Enter full name" required>
+            </div>
+            <div class="mb-3">
+              <label for="memberRole" class="form-label">Role</label>
+              <input type="text" class="form-control" id="memberRole" placeholder="e.g., Director, Actor, Technician" required>
+            </div>
+            <div class="mb-3">
+              <label for="memberPhone" class="form-label">Phone Number</label>
+              <input type="tel" class="form-control" id="memberPhone" placeholder="+91 XXXXX XXXXX" required>
+            </div>
+            <div class="mb-3">
+              <label for="memberStatus" class="form-label">Availability Status</label>
+              <select class="form-select" id="memberStatus">
+                <option value="Free">Free</option>
+                <option value="Busy">Busy</option>
+                <option value="On Leave">On Leave</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm" style="color:var(--naatya-text-muted);" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" id="btnSaveMember" class="btn-primary-naatya">Save Member</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Blur Overlay for Tab Switch -->
+  <div id="blurOverlay" class="blur-overlay">
+    <div class="blur-message">
+      <i class="bi bi-shield-lock"></i>
+      <h4>Tab Switch Detected</h4>
+      <p>Content hidden for security. Click to resume.</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NAATYA - Security</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="wrapper">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-icon"><i class="bi bi-masks-theater"></i></div>
+        <span class="sidebar-brand-text">NAATYA</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Main</div>
+        <a href="dashboard.html" class="sidebar-link">
+          <i class="bi bi-grid-1x2"></i> Dashboard
+        </a>
+        <a href="members.html" class="sidebar-link">
+          <i class="bi bi-people"></i> Cast & Crew
+        </a>
+        <a href="inventory.html" class="sidebar-link">
+          <i class="bi bi-box-seam"></i> Inventory
+        </a>
+        <a href="rehearsals.html" class="sidebar-link">
+          <i class="bi bi-calendar-event"></i> Rehearsals
+        </a>
+        <div class="nav-section-title">System</div>
+        <a href="security.html" class="sidebar-link active">
+          <i class="bi bi-shield-check"></i> Security
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="#" class="sidebar-link btn-logout">
+          <i class="bi bi-box-arrow-left"></i> Logout
+        </a>
+      </div>
+    </aside>
+
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="top-navbar">
+        <div class="d-flex align-items-center gap-3">
+          <button id="sidebarToggle" class="btn-sidebar-toggle"><i class="bi bi-list"></i></button>
+          <span class="page-title">Security Information</span>
+        </div>
+        <div class="navbar-actions">
+          <div class="user-badge">
+            <span class="d-none d-sm-inline">Admin</span>
+            <div class="user-avatar">A</div>
+          </div>
+        </div>
+      </header>
+
+      <div class="content-area">
+        <!-- Security Overview -->
+        <div class="content-card mb-4">
+          <div class="card-header-custom">
+            <h5><i class="bi bi-shield-lock text-naatya-primary"></i> Security Features Overview</h5>
+          </div>
+          <div class="card-body-custom">
+            <p class="text-naatya-muted" style="font-size:0.9rem;">
+              NAATYA implements multiple client-side security measures to protect sensitive production data,
+              scripts, and intellectual property. These features safeguard against unauthorized access,
+              data theft, and content duplication.
+            </p>
+          </div>
+        </div>
+
+        <!-- Security Feature Cards -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-6 col-lg-4">
+            <div class="security-feature">
+              <div class="feature-icon"><i class="bi bi-cursor"></i></div>
+              <h6>Right-Click Disabled</h6>
+              <p>Context menu is blocked across all pages to prevent users from accessing "Save As", "View Source", or "Inspect Element" through right-click actions.</p>
+              <span class="feature-status"><i class="bi bi-check-circle me-1"></i>Active</span>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-4">
+            <div class="security-feature">
+              <div class="feature-icon"><i class="bi bi-scissors"></i></div>
+              <h6>Copy/Cut Blocked</h6>
+              <p>Clipboard operations (copy and cut) are intercepted and blocked to prevent unauthorized duplication of scripts, member details, and proprietary content.</p>
+              <span class="feature-status"><i class="bi bi-check-circle me-1"></i>Active</span>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-4">
+            <div class="security-feature">
+              <div class="feature-icon"><i class="bi bi-bug"></i></div>
+              <h6>Developer Tools Blocked</h6>
+              <p>Keyboard shortcuts for developer tools (F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U) are intercepted and disabled to prevent code inspection.</p>
+              <span class="feature-status"><i class="bi bi-check-circle me-1"></i>Active</span>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-4">
+            <div class="security-feature">
+              <div class="feature-icon"><i class="bi bi-eye-slash"></i></div>
+              <h6>Blur on Tab Switch</h6>
+              <p>When the user switches to another browser tab, the application content is hidden behind a blur overlay, preventing visual data leakage via screenshots or over-the-shoulder observation.</p>
+              <span class="feature-status"><i class="bi bi-check-circle me-1"></i>Active</span>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-4">
+            <div class="security-feature">
+              <div class="feature-icon"><i class="bi bi-key"></i></div>
+              <h6>Authentication Required</h6>
+              <p>All dashboard pages require authentication. Unauthenticated users are redirected to the login page. Session management protects against unauthorized access.</p>
+              <span class="feature-status"><i class="bi bi-check-circle me-1"></i>Active</span>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-4">
+            <div class="security-feature">
+              <div class="feature-icon"><i class="bi bi-database-lock"></i></div>
+              <h6>Input Sanitization</h6>
+              <p>All user inputs are sanitized using HTML escaping to prevent XSS (Cross-Site Scripting) attacks. Dynamic content insertion uses safe DOM methods.</p>
+              <span class="feature-status"><i class="bi bi-check-circle me-1"></i>Active</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Security Implementation Details -->
+        <div class="content-card">
+          <div class="card-header-custom">
+            <h5><i class="bi bi-code-square text-naatya-accent"></i> Implementation Details</h5>
+          </div>
+          <div class="card-body-custom">
+            <div class="table-responsive">
+              <table class="table table-naatya">
+                <thead>
+                  <tr>
+                    <th>Feature</th>
+                    <th>Method</th>
+                    <th>Event Listened</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Right-Click Disabled</td>
+                    <td>contextmenu preventDefault()</td>
+                    <td>contextmenu</td>
+                    <td><span class="badge-status badge-available">Enabled</span></td>
+                  </tr>
+                  <tr>
+                    <td>Copy Blocked</td>
+                    <td>copy preventDefault()</td>
+                    <td>copy</td>
+                    <td><span class="badge-status badge-available">Enabled</span></td>
+                  </tr>
+                  <tr>
+                    <td>Cut Blocked</td>
+                    <td>cut preventDefault()</td>
+                    <td>cut</td>
+                    <td><span class="badge-status badge-available">Enabled</span></td>
+                  </tr>
+                  <tr>
+                    <td>Dev Tools (F12)</td>
+                    <td>keydown preventDefault()</td>
+                    <td>keydown (F12)</td>
+                    <td><span class="badge-status badge-available">Enabled</span></td>
+                  </tr>
+                  <tr>
+                    <td>Dev Tools (Ctrl+Shift+I/J/C)</td>
+                    <td>keydown preventDefault()</td>
+                    <td>keydown (combo)</td>
+                    <td><span class="badge-status badge-available">Enabled</span></td>
+                  </tr>
+                  <tr>
+                    <td>View Source (Ctrl+U)</td>
+                    <td>keydown preventDefault()</td>
+                    <td>keydown (combo)</td>
+                    <td><span class="badge-status badge-available">Enabled</span></td>
+                  </tr>
+                  <tr>
+                    <td>Tab Switch Blur</td>
+                    <td>visibilitychange listener</td>
+                    <td>visibilitychange</td>
+                    <td><span class="badge-status badge-available">Enabled</span></td>
+                  </tr>
+                  <tr>
+                    <td>XSS Prevention</td>
+                    <td>escapeHtml() via DOM text node</td>
+                    <td>All dynamic content</td>
+                    <td><span class="badge-status badge-available">Enabled</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Blur Overlay for Tab Switch -->
+  <div id="blurOverlay" class="blur-overlay">
+    <div class="blur-message">
+      <i class="bi bi-shield-lock"></i>
+      <h4>Tab Switch Detected</h4>
+      <p>Content hidden for security. Click to resume.</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/script.js"></script>
+</body>
+</html>

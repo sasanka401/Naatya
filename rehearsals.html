@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NAATYA - Rehearsals</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="wrapper">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-icon"><i class="bi bi-masks-theater"></i></div>
+        <span class="sidebar-brand-text">NAATYA</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Main</div>
+        <a href="dashboard.html" class="sidebar-link">
+          <i class="bi bi-grid-1x2"></i> Dashboard
+        </a>
+        <a href="members.html" class="sidebar-link">
+          <i class="bi bi-people"></i> Cast & Crew
+        </a>
+        <a href="inventory.html" class="sidebar-link">
+          <i class="bi bi-box-seam"></i> Inventory
+        </a>
+        <a href="rehearsals.html" class="sidebar-link active">
+          <i class="bi bi-calendar-event"></i> Rehearsals
+        </a>
+        <div class="nav-section-title">System</div>
+        <a href="security.html" class="sidebar-link">
+          <i class="bi bi-shield-check"></i> Security
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="#" class="sidebar-link btn-logout">
+          <i class="bi bi-box-arrow-left"></i> Logout
+        </a>
+      </div>
+    </aside>
+
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="top-navbar">
+        <div class="d-flex align-items-center gap-3">
+          <button id="sidebarToggle" class="btn-sidebar-toggle"><i class="bi bi-list"></i></button>
+          <span class="page-title">Rehearsal Scheduler</span>
+        </div>
+        <div class="navbar-actions">
+          <div class="user-badge">
+            <span class="d-none d-sm-inline">Admin</span>
+            <div class="user-avatar">A</div>
+          </div>
+        </div>
+      </header>
+
+      <div class="content-area">
+        <div class="content-card">
+          <div class="card-header-custom">
+            <h5><i class="bi bi-calendar-event text-naatya-primary"></i> Rehearsal Schedule</h5>
+            <div class="d-flex gap-2 flex-wrap">
+              <div class="search-bar">
+                <i class="bi bi-search"></i>
+                <input type="text" id="rehearsalSearch" placeholder="Search rehearsals...">
+              </div>
+              <button id="btnAddRehearsal" class="btn-primary-naatya">
+                <i class="bi bi-plus-lg me-1"></i> Add Rehearsal
+              </button>
+            </div>
+          </div>
+          <div class="card-body-custom p-0">
+            <div class="table-responsive">
+              <table class="table table-naatya mb-0">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Venue</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="rehearsalsTableBody">
+                  <tr data-rehearsal-id="R1">
+                    <td>Act I - The Opening</td>
+                    <td>15 Jun 2026</td>
+                    <td>10:00 AM</td>
+                    <td>Main Stage</td>
+                    <td>
+                      <button class="btn-action btn-action-edit me-1" title="Edit"><i class="bi bi-pencil"></i></button>
+                      <button class="btn-action btn-action-delete" title="Delete"><i class="bi bi-trash3"></i></button>
+                    </td>
+                  </tr>
+                  <tr data-rehearsal-id="R2">
+                    <td>Act II - The Conflict</td>
+                    <td>18 Jun 2026</td>
+                    <td>2:00 PM</td>
+                    <td>Rehearsal Hall B</td>
+                    <td>
+                      <button class="btn-action btn-action-edit me-1" title="Edit"><i class="bi bi-pencil"></i></button>
+                      <button class="btn-action btn-action-delete" title="Delete"><i class="bi bi-trash3"></i></button>
+                    </td>
+                  </tr>
+                  <tr data-rehearsal-id="R3">
+                    <td>Act III - The Banquet</td>
+                    <td>22 Jun 2026</td>
+                    <td>11:00 AM</td>
+                    <td>Main Stage</td>
+                    <td>
+                      <button class="btn-action btn-action-edit me-1" title="Edit"><i class="bi bi-pencil"></i></button>
+                      <button class="btn-action btn-action-delete" title="Delete"><i class="bi bi-trash3"></i></button>
+                    </td>
+                  </tr>
+                  <tr data-rehearsal-id="R4">
+                    <td>Dance Sequence Practice</td>
+                    <td>24 Jun 2026</td>
+                    <td>9:00 AM</td>
+                    <td>Dance Studio</td>
+                    <td>
+                      <button class="btn-action btn-action-edit me-1" title="Edit"><i class="bi bi-pencil"></i></button>
+                      <button class="btn-action btn-action-delete" title="Delete"><i class="bi bi-trash3"></i></button>
+                    </td>
+                  </tr>
+                  <tr data-rehearsal-id="R5">
+                    <td>Full Run-Through</td>
+                    <td>25 Jun 2026</td>
+                    <td>9:00 AM</td>
+                    <td>Main Stage</td>
+                    <td>
+                      <button class="btn-action btn-action-edit me-1" title="Edit"><i class="bi bi-pencil"></i></button>
+                      <button class="btn-action btn-action-delete" title="Delete"><i class="bi bi-trash3"></i></button>
+                    </td>
+                  </tr>
+                  <tr data-rehearsal-id="R6">
+                    <td>Costume Fitting Session</td>
+                    <td>27 Jun 2026</td>
+                    <td>3:00 PM</td>
+                    <td>Costume Room</td>
+                    <td>
+                      <button class="btn-action btn-action-edit me-1" title="Edit"><i class="bi bi-pencil"></i></button>
+                      <button class="btn-action btn-action-delete" title="Delete"><i class="bi bi-trash3"></i></button>
+                    </td>
+                  </tr>
+                  <tr data-rehearsal-id="R7">
+                    <td>Sound & Lighting Check</td>
+                    <td>28 Jun 2026</td>
+                    <td>4:00 PM</td>
+                    <td>Main Stage</td>
+                    <td>
+                      <button class="btn-action btn-action-edit me-1" title="Edit"><i class="bi bi-pencil"></i></button>
+                      <button class="btn-action btn-action-delete" title="Delete"><i class="bi bi-trash3"></i></button>
+                    </td>
+                  </tr>
+                  <tr data-rehearsal-id="R8">
+                    <td>Dress Rehearsal</td>
+                    <td>30 Jun 2026</td>
+                    <td>10:00 AM</td>
+                    <td>Main Stage</td>
+                    <td>
+                      <button class="btn-action btn-action-edit me-1" title="Edit"><i class="bi bi-pencil"></i></button>
+                      <button class="btn-action btn-action-delete" title="Delete"><i class="bi bi-trash3"></i></button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Rehearsal Modal -->
+  <div class="modal fade" id="rehearsalModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="rehearsalModalLabel">Schedule New Rehearsal</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="rehearsalForm">
+            <input type="hidden" id="rehearsalId">
+            <div class="mb-3">
+              <label for="rehearsalTitle" class="form-label">Rehearsal Title</label>
+              <input type="text" class="form-control" id="rehearsalTitle" placeholder="Enter rehearsal title" required>
+            </div>
+            <div class="mb-3">
+              <label for="rehearsalDate" class="form-label">Date</label>
+              <input type="date" class="form-control" id="rehearsalDate" required>
+            </div>
+            <div class="mb-3">
+              <label for="rehearsalTime" class="form-label">Time</label>
+              <input type="time" class="form-control" id="rehearsalTime" required>
+            </div>
+            <div class="mb-3">
+              <label for="rehearsalVenue" class="form-label">Venue</label>
+              <input type="text" class="form-control" id="rehearsalVenue" placeholder="e.g., Main Stage, Rehearsal Hall B" required>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm" style="color:var(--naatya-text-muted);" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" id="btnSaveRehearsal" class="btn-primary-naatya">Save Rehearsal</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Blur Overlay for Tab Switch -->
+  <div id="blurOverlay" class="blur-overlay">
+    <div class="blur-message">
+      <i class="bi bi-shield-lock"></i>
+      <h4>Tab Switch Detected</h4>
+      <p>Content hidden for security. Click to resume.</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/script.js"></script>
+</body>
+</html>
