@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserCircle, Contact } from 'lucide-react';
+import { UserCircle, Contact, Trash2 } from 'lucide-react';
 import { showToast } from '../components/Toast';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth-context';
@@ -9,6 +9,26 @@ export function Profile() {
   const { user, profile } = useAuth();
   const [member, setMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDeleteAccount() {
+    const confirmDelete = window.confirm(
+      "WARNING: Are you absolutely sure you want to permanently delete your account and all your data? This action is irreversible and you will be logged out instantly."
+    );
+    if (!confirmDelete) return;
+
+    setDeleting(true);
+    const { error } = await supabase.rpc('delete_own_account');
+    
+    if (error) {
+      showToast(`Account deletion failed: ${error.message}`, 'danger');
+      setDeleting(false);
+    } else {
+      showToast('Account deleted successfully.', 'success');
+      await supabase.auth.signOut();
+      window.location.reload();
+    }
+  }
 
   useEffect(() => {
     load();
@@ -110,6 +130,34 @@ export function Profile() {
               </div>
             </>
           )}
+        </div>
+      </div>
+
+      <div className="card mt-6" style={{ borderColor: 'var(--naatya-danger)', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.05)' }}>
+        <div className="card-header" style={{ background: 'rgba(239, 68, 68, 0.03)', borderBottom: '1px solid rgba(239, 68, 68, 0.1)' }}>
+          <h5 className="text-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--naatya-danger)' }}>
+            <Trash2 size={16} /> Danger Zone
+          </h5>
+        </div>
+        <div className="card-body">
+          <p className="text-muted text-sm mb-4">
+            Permanently delete your account, login credentials, profile status, and associated cast &amp; crew records. This action is irreversible.
+          </p>
+          <button
+            className="btn-login"
+            style={{ 
+              background: 'linear-gradient(135deg, var(--naatya-danger), #b91c1c)', 
+              width: 'auto', 
+              padding: '0.6rem 1.5rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+            onClick={handleDeleteAccount}
+            disabled={deleting}
+          >
+            {deleting ? 'Deleting Account...' : 'Delete My Account'}
+          </button>
         </div>
       </div>
     </div>
