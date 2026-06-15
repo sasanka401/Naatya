@@ -7,20 +7,31 @@ import { Dashboard } from './pages/Dashboard';
 import { Members } from './pages/Members';
 import { Inventory } from './pages/Inventory';
 import { Rehearsals } from './pages/Rehearsals';
+import { Scripts } from './pages/Scripts';
+import { Characters } from './pages/Characters';
+import { Team } from './pages/Team';
+import { Profile } from './pages/Profile';
 import { Security } from './pages/Security';
+import { supabase } from './lib/supabase';
+import { AuthProvider, useAuth } from './lib/auth-context';
+import { ProductionProvider } from './lib/production-context';
 
-type Page = 'dashboard' | 'members' | 'inventory' | 'rehearsals' | 'security';
+type Page = 'dashboard' | 'members' | 'characters' | 'inventory' | 'rehearsals' | 'scripts' | 'team' | 'profile' | 'security';
 
 const pageTitles: Record<Page, string> = {
   dashboard:  'Dashboard',
   members:    'Cast & Crew Management',
+  characters: 'Characters & Casting',
   inventory:  'Inventory Management',
   rehearsals: 'Rehearsal Scheduler',
+  scripts:    'Script Library',
+  team:       'Team & Access Management',
+  profile:    'My Profile',
   security:   'Security Information',
 };
 
-export default function App() {
-  const [loggedIn, setLoggedIn] = useState(false);
+function AppShell() {
+  const { user, loading } = useAuth();
   const [page, setPage] = useState<Page>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tabHidden, setTabHidden] = useState(false);
@@ -67,10 +78,19 @@ export default function App() {
     return () => document.removeEventListener('keydown', handler);
   }, []);
 
-  if (!loggedIn) {
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    showToast('Logged out successfully.', 'info');
+  }
+
+  if (loading) {
+    return null;
+  }
+
+  if (!user) {
     return (
       <>
-        <Login onLogin={() => setLoggedIn(true)} />
+        <Login onLogin={() => { /* auth state listener handles the rest */ }} />
         <ToastContainer />
       </>
     );
@@ -82,7 +102,7 @@ export default function App() {
         <Sidebar
           current={page}
           onNavigate={setPage}
-          onLogout={() => { setLoggedIn(false); showToast('Logged out successfully.', 'info'); }}
+          onLogout={handleLogout}
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
         />
@@ -90,8 +110,12 @@ export default function App() {
           <Topbar title={pageTitles[page]} onMenuClick={() => setSidebarOpen(o => !o)} />
           {page === 'dashboard'  && <Dashboard />}
           {page === 'members'    && <Members />}
+          {page === 'characters' && <Characters />}
           {page === 'inventory'  && <Inventory />}
           {page === 'rehearsals' && <Rehearsals />}
+          {page === 'scripts'    && <Scripts />}
+          {page === 'team'       && <Team />}
+          {page === 'profile'    && <Profile />}
           {page === 'security'   && <Security />}
         </main>
       </div>
@@ -107,5 +131,15 @@ export default function App() {
 
       <ToastContainer />
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <ProductionProvider>
+        <AppShell />
+      </ProductionProvider>
+    </AuthProvider>
   );
 }

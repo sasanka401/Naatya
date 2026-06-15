@@ -1,29 +1,14 @@
-import { useState } from 'react';
-import { Pencil, Trash2, Plus, Search, Package } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Pencil, Trash2, Plus, Search, Package, StickyNote, Download, Printer } from 'lucide-react';
 import { Modal } from '../components/Modal';
+import { NotesModal } from '../components/NotesModal';
 import { showToast } from '../components/Toast';
-
-type PropStatus = 'Available' | 'In Use' | 'Damaged';
-
-interface Prop {
-  id: string;
-  name: string;
-  quantity: number;
-  status: PropStatus;
-}
-
-const initial: Prop[] = [
-  { id: 'P1',  name: 'Wooden Throne',        quantity: 2, status: 'Available' },
-  { id: 'P2',  name: 'Silk Curtain (Red)',    quantity: 4, status: 'Available' },
-  { id: 'P3',  name: 'Antique Sword Set',     quantity: 6, status: 'In Use' },
-  { id: 'P4',  name: 'Golden Crown',          quantity: 1, status: 'Damaged' },
-  { id: 'P5',  name: 'Crystal Chandelier',    quantity: 2, status: 'Available' },
-  { id: 'P6',  name: 'Royal Scepter',         quantity: 3, status: 'In Use' },
-  { id: 'P7',  name: 'Velvet Carpet (Blue)',  quantity: 1, status: 'Available' },
-  { id: 'P8',  name: 'Candelabra Set',        quantity: 5, status: 'Damaged' },
-  { id: 'P9',  name: 'Wooden Shield',         quantity: 4, status: 'Available' },
-  { id: 'P10', name: 'Scroll Props',          quantity: 8, status: 'In Use' },
-];
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth-context';
+import { useProduction } from '../lib/production-context';
+import { logActivity } from '../lib/activity';
+import { exportToCsv } from '../lib/export';
+import type { Prop, PropStatus } from '../lib/types';
 
 const statusClass: Record<PropStatus, string> = {
   'Available': 'badge-available',
@@ -31,40 +16,79 @@ const statusClass: Record<PropStatus, string> = {
   'Damaged':   'badge-damaged',
 };
 
-const blank = { name: '', quantity: 1, status: 'Available' as PropStatus };
+const blank: Omit<Prop, 'id'> = { name: '', quantity: 1, status: 'Available', act_scene: '' };
 
 export function Inventory() {
-  const [props, setProps] = useState<Prop[]>(initial);
+  const { isDirector, user } = useAuth();
+  const { selectedId, isAll, productions } = useProduction();
+  const [props, setProps] = useState<Prop[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState(blank);
+  const [form, setForm] = useState<Omit<Prop, 'id'>>(blank);
   const [editId, setEditId] = useState<string | null>(null);
+  const [notesFor, setNotesFor] = useState<Prop | null>(null);
+
+  useEffect(() => {
+    loadProps();
+  }, [selectedId]);
+
+  async function loadProps() {
+    setLoading(true);
+    let query = supabase.from('inventory').select('*').order('created_at', { ascending: true });
+    if (!isAll) query = query.eq('production_id', selectedId);
+    const { data, error } = await query;
+
+    if (error) {
+      showToast(`Failed to load inventory: ${error.message}`, 'danger');
+    } else {
+      setProps(data as Prop[]);
+    }
+    setLoading(false);
+  }
 
   const filtered = props.filter(p =>
-    [p.name, p.status, String(p.quantity)].some(v => v.toLowerCase().includes(search.toLowerCase()))
+    [p.name, p.status, String(p.quantity), p.act_scene ?? ''].some(v => v.toLowerCase().includes(search.toLowerCase()))
   );
 
-  function openAdd() { setForm(blank); setEditId(null); setModal(true); }
-  function openEdit(p: Prop) { setForm({ name: p.name, quantity: p.quantity, status: p.status }); setEditId(p.id); setModal(true); }
+  function exportCsv() {
+    exportToCsv('inventory.csv', filtered.map(p => ({
+      Prop: p.name, Quantity: p.quantity, Status: p.status, 'Act/Scene': p.act_scene ?? '',
+    })));
+  }
 
-  function save() {
+  function openAdd() { setForm(blank); setEditId(null); setModal(true); }
+  function openEdit(p: Prop) { setForm({ name: p.name, quantity: p.quantity, status: p.status, act_scene: p.act_scene ?? '' }); setEditId(p.id); setModal(true); }
+
+  async function save() {
     if (!form.name.trim() || form.quantity < 1) {
       showToast('Please fill in all required fields.', 'warning'); return;
     }
+
     if (editId) {
-      setProps(prev => prev.map(p => p.id === editId ? { ...p, ...form } : p));
+      const { error } = await supabase.from('inventory').update(form).eq('id', editId);
+      if (error) { showToast(`Update failed: ${error.message}`, 'danger'); return; }
       showToast('Prop updated successfully!', 'success');
+      logActivity(`${user?.email ?? 'Someone'} updated ${form.name} (Qty: ${form.quantity}, ${form.status})`);
     } else {
-      setProps(prev => [...prev, { id: `P${Date.now()}`, ...form }]);
+      const payload = { ...form, production_id: isAll ? (productions[0]?.id ?? null) : selectedId };
+      const { error } = await supabase.from('inventory').insert(payload);
+      if (error) { showToast(`Add failed: ${error.message}`, 'danger'); return; }
       showToast('Prop added successfully!', 'success');
+      logActivity(`${user?.email ?? 'Someone'} added ${form.name} to inventory (Qty: ${form.quantity})`);
     }
     setModal(false);
+    loadProps();
   }
 
-  function remove(id: string) {
+  async function remove(id: string) {
     if (!confirm('Remove this prop?')) return;
-    setProps(prev => prev.filter(p => p.id !== id));
+    const prop = props.find(p => p.id === id);
+    const { error } = await supabase.from('inventory').delete().eq('id', id);
+    if (error) { showToast(`Delete failed: ${error.message}`, 'danger'); return; }
     showToast('Prop removed.', 'success');
+    logActivity(`${user?.email ?? 'Someone'} removed ${prop?.name ?? 'a prop'} from inventory`);
+    loadProps();
   }
 
   return (
@@ -77,40 +101,53 @@ export function Inventory() {
               <span className="search-icon"><Search size={14} /></span>
               <input placeholder="Search props..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
-            <button className="btn-primary" onClick={openAdd}><Plus size={15} /> Add Prop</button>
+            <button className="btn-ghost" onClick={exportCsv} title="Export CSV"><Download size={15} /> Export</button>
+            <button className="btn-ghost" onClick={() => window.print()} title="Print"><Printer size={15} /> Print</button>
+            {isDirector && (
+              <button className="btn-primary" onClick={openAdd}><Plus size={15} /> Add Prop</button>
+            )}
           </div>
         </div>
         <div className="table-wrap">
           <table className="naatya-table">
             <thead>
               <tr>
-                <th>#</th><th>Prop Name</th><th>Quantity</th><th>Status</th><th>Actions</th>
+                <th>#</th><th>Prop Name</th><th>Quantity</th><th>Status</th><th>Act/Scene</th><th>Notes</th>{isDirector && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p, i) => (
+              {loading && (
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--naatya-text-muted)' }}>Loading...</td></tr>
+              )}
+              {!loading && filtered.map((p, i) => (
                 <tr key={p.id}>
                   <td className="text-muted text-xs">{i + 1}</td>
                   <td className="font-semibold">{p.name}</td>
                   <td>{p.quantity}</td>
                   <td><span className={`badge ${statusClass[p.status]}`}>{p.status}</span></td>
+                  <td className="text-muted">{p.act_scene || '—'}</td>
+                  <td>
+                    <button className="btn-action btn-edit" onClick={() => setNotesFor(p)} title="Notes"><StickyNote size={13} /></button>
+                  </td>
+                  {isDirector && (
                   <td>
                     <div className="flex gap-2">
                       <button className="btn-action btn-edit" onClick={() => openEdit(p)} title="Edit"><Pencil size={13} /></button>
                       <button className="btn-action btn-del"  onClick={() => remove(p.id)}  title="Delete"><Trash2 size={13} /></button>
                     </div>
                   </td>
+                  )}
                 </tr>
               ))}
-              {filtered.length === 0 && (
-                <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--naatya-text-muted)' }}>No props found.</td></tr>
+              {!loading && filtered.length === 0 && (
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--naatya-text-muted)' }}>No props found.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {modal && (
+      {modal && isDirector && (
         <Modal title={editId ? 'Edit Prop' : 'Add New Prop'} onClose={() => setModal(false)} onSave={save} saveLabel="Save Prop">
           <div className="form-group">
             <label className="form-label">Prop Name</label>
@@ -128,7 +165,20 @@ export function Inventory() {
               <option>Damaged</option>
             </select>
           </div>
+          <div className="form-group">
+            <label className="form-label">Act / Scene (optional)</label>
+            <input className="form-input" placeholder="e.g. Act II, Scene 3" value={form.act_scene ?? ''} onChange={e => setForm(f => ({ ...f, act_scene: e.target.value }))} />
+          </div>
         </Modal>
+      )}
+
+      {notesFor && (
+        <NotesModal
+          entityType="prop"
+          entityId={notesFor.id}
+          entityLabel={notesFor.name}
+          onClose={() => setNotesFor(null)}
+        />
       )}
     </div>
   );
