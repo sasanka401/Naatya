@@ -27,6 +27,91 @@ interface SecurityAlarm {
   created_at: string;
 }
 
+function filterScript(text: string, characterName: string): string {
+  if (!characterName) {
+    return "No character assigned. Please ask your Director to assign you a character from the Characters page to view your scenes.";
+  }
+
+  const charLower = characterName.toLowerCase();
+  const lines = text.split('\n');
+  const scenes: { title: string; content: string[] }[] = [];
+  let currentSceneTitle = 'Opening / Prologue';
+  let currentSceneLines: string[] = [];
+
+  for (const line of lines) {
+    const isHeader = /^\s*(SCENE|Scene|ACT|Act|PROLOGUE|Prologue)\b/i.test(line) || /^\s*#+\s*(SCENE|Scene|ACT|Act)/i.test(line);
+    
+    if (isHeader) {
+      if (currentSceneLines.length > 0) {
+        scenes.push({ title: currentSceneTitle, content: currentSceneLines });
+      }
+      currentSceneTitle = line.trim();
+      currentSceneLines = [];
+    } else {
+      currentSceneLines.push(line);
+    }
+  }
+  if (currentSceneLines.length > 0) {
+    scenes.push({ title: currentSceneTitle, content: currentSceneLines });
+  }
+
+  const filteredScenes = scenes.map(scene => {
+    const sceneText = scene.content.join('\n');
+    const sceneTextLower = sceneText.toLowerCase();
+
+    // Check if the character speaks in this scene or is mentioned
+    const speaks = new RegExp(`\\b${charLower}\\b\\s*[:\\]]`, 'i').test(sceneText) || sceneTextLower.includes(`${charLower}:`) || sceneTextLower.includes(`[${charLower}]`);
+    const mentioned = sceneTextLower.includes(charLower);
+
+    if (speaks || (mentioned && scene.title !== 'Opening / Prologue')) {
+      const speakers = new Set<string>();
+      scene.content.forEach(l => {
+        const match = l.match(/^\s*([A-Za-z\s]{2,20})\s*[:]/);
+        if (match) {
+          const speaker = match[1].trim();
+          if (speaker.toLowerCase() !== charLower) {
+            speakers.add(speaker);
+          }
+        }
+      });
+
+      const interactions = speakers.size > 0 
+        ? ` (Interacting with: ${Array.from(speakers).join(', ')})`
+        : '';
+
+      return {
+        included: true,
+        title: scene.title,
+        header: `🎭 ${scene.title}${interactions}`,
+        content: scene.content.join('\n')
+      };
+    } else {
+      return {
+        included: false,
+        title: scene.title,
+        header: `🔒 ${scene.title} (Omitted - ${characterName} is not in this scene)`
+      };
+    }
+  });
+
+  let output = `=================================================================\n`;
+  output += `   SECURE DYNAMIC CAST VIEW FOR: ${characterName.toUpperCase()}\n`;
+  output += `   (Full script file access disabled for security)\n`;
+  output += `=================================================================\n\n`;
+
+  filteredScenes.forEach(scene => {
+    if (scene.included) {
+      output += `${scene.header}\n`;
+      output += `-`.repeat(scene.header.length) + `\n`;
+      output += `${scene.content}\n\n`;
+    } else {
+      output += `${scene.header}\n\n`;
+    }
+  });
+
+  return output;
+}
+
 export function Scripts() {
   const { user, profile } = useAuth();
   const { selectedId, isAll, productions } = useProduction();
@@ -66,11 +151,41 @@ export function Scripts() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  // Character Name state for Cast scene filter
+  const [characterName, setCharacterName] = useState('');
+
+  async function fetchCharacterName() {
+    if (!user) return;
+    
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('member_id')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profileData?.member_id) {
+      const { data: charData } = await supabase
+        .from('characters')
+        .select('name')
+        .eq('member_id', profileData.member_id)
+        .maybeSingle();
+
+      if (charData) {
+        setCharacterName(charData.name);
+      } else {
+        setCharacterName('');
+      }
+    } else {
+      setCharacterName('');
+    }
+  }
+
   // 1. Initial Access Verification & Surveillance load
   useEffect(() => {
     if (!selectedId || selectedId === 'all') return;
     if (isCast) {
       checkScriptRoomAccess();
+      fetchCharacterName();
     } else {
       setCheckingAccess(false);
     }
@@ -518,6 +633,14 @@ export function Scripts() {
   }
 
   async function view(script: Script) {
+    const lower = script.storage_path.toLowerCase();
+    const isText = lower.endsWith('.txt') || lower.endsWith('.md');
+
+    if (isCast && !isText) {
+      showToast('Security Alert: Cast members are restricted to text-based scripts only to enforce character-scene filters. PDF access is blocked.', 'danger');
+      return;
+    }
+
     const { data, error } = await supabase.storage
       .from(SCRIPT_BUCKET)
       .createSignedUrl(script.storage_path, 300);
@@ -527,13 +650,11 @@ export function Scripts() {
       return;
     }
 
-    const lower = script.storage_path.toLowerCase();
-    const isText = lower.endsWith('.txt') || lower.endsWith('.md');
-
     if (isText) {
       const res = await fetch(data.signedUrl);
       const text = await res.text();
-      setViewer({ script, url: data.signedUrl, isText: true, text });
+      const finalText = isCast ? filterScript(text, characterName) : text;
+      setViewer({ script, url: data.signedUrl, isText: true, text: finalText });
     } else {
       setViewer({ script, url: data.signedUrl, isText: false });
     }
@@ -846,7 +967,7 @@ export function Scripts() {
             <div className="script-viewer-body" style={{ position: 'relative' }}>
               <Watermark label={watermarkLabel} />
               {viewer.isText ? (
-                <div style={{ userSelect: 'none' }}>{viewer.text}</div>
+                <div style={{ userSelect: 'none', whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: '1.5' }}>{viewer.text}</div>
               ) : (
                 <iframe
                   src={`${viewer.url}#toolbar=0`}
