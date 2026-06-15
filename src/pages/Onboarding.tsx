@@ -76,7 +76,7 @@ export function Onboarding() {
   }
 
   return (
-    <div className="login-page">
+    <div className="onboarding-modal-container">
       <div className="login-card" style={{ maxWidth: '480px' }}>
         <div className="login-logo">
           <Layers size={32} color="#fff" strokeWidth={2.25} />

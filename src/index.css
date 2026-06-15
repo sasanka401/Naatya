@@ -1173,3 +1173,24 @@ table.naatya-table {
 .profile-field { background: var(--naatya-bg); border: 1px solid var(--naatya-border); border-radius: 8px; padding: 0.9rem; }
 .profile-field .label { font-size: 0.72rem; color: var(--naatya-text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .profile-field .value { font-size: 0.95rem; font-weight: 600; margin-top: 0.25rem; }
+
+/* ---- Onboarding Overlay ---- */
+.onboarding-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.onboarding-modal-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+

@@ -13,7 +13,6 @@ import { Team } from './pages/Team';
 import { Profile } from './pages/Profile';
 import { Security } from './pages/Security';
 import { Onboarding } from './pages/Onboarding';
-import { PendingApproval } from './pages/PendingApproval';
 import { AccountRejected } from './pages/AccountRejected';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { supabase } from './lib/supabase';
@@ -153,26 +152,6 @@ function AppShell() {
     );
   }
 
-  // Handle onboarding profile pop-up
-  if (profile?.approval_status === 'pending_onboarding') {
-    return (
-      <>
-        <Onboarding />
-        <ToastContainer />
-      </>
-    );
-  }
-
-  // Handle pending admin approvals
-  if (profile?.approval_status === 'pending_admin') {
-    return (
-      <>
-        <PendingApproval />
-        <ToastContainer />
-      </>
-    );
-  }
-
   // Handle rejected profiles
   if (profile?.approval_status === 'rejected') {
     return (
@@ -215,6 +194,12 @@ function AppShell() {
         <h4>Tab Switch Detected</h4>
         <p>Content hidden for security. Return to this tab to continue.</p>
       </div>
+
+      {profile?.approval_status === 'pending_onboarding' && (
+        <div className="onboarding-overlay">
+          <Onboarding />
+        </div>
+      )}
 
       <ToastContainer />
     </>

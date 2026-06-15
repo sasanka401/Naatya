@@ -60,8 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const isDirector = profile?.detailed_role === 'Director' || profile?.role === 'Director';
-  const isWriter = profile?.detailed_role === 'Writer';
+  const isDirector = (profile?.detailed_role === 'Director' || profile?.role === 'Director') && profile?.approval_status === 'approved';
+  const isWriter = profile?.detailed_role === 'Writer' && profile?.approval_status === 'approved';
   const isAdmin = profile?.is_admin === true;
 
   return (

@@ -42,8 +42,16 @@ export function Sidebar({ current, onNavigate, onLogout, open, onClose }: Props)
         {user && (
           <div style={{ padding: '0 1.25rem 1rem', borderBottom: '1px solid var(--naatya-border)', marginBottom: '0.5rem' }}>
             <div className="text-sm font-semibold" style={{ wordBreak: 'break-all' }}>{user.email}</div>
-            <span className="role-badge" style={{ marginTop: '0.35rem', display: 'inline-block' }}>
-              {profile?.role ?? 'Cast'}
+            <span 
+              className="role-badge" 
+              style={{ 
+                marginTop: '0.35rem', 
+                display: 'inline-block',
+                background: profile?.approval_status === 'pending_admin' ? '#d97706' : undefined,
+                color: profile?.approval_status === 'pending_admin' ? '#fff' : undefined
+              }}
+            >
+              {profile?.approval_status === 'pending_admin' ? 'PENDING' : (profile?.role ?? 'Cast')}
             </span>
           </div>
         )}
