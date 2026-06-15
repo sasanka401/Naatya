@@ -2,10 +2,8 @@ import { useState } from 'react';
 import { Layers, Drama, Wrench, Link, FileUp } from 'lucide-react';
 import { showToast } from '../components/Toast';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../lib/auth-context';
 
 export function Onboarding() {
-  const { user } = useAuth();
   const [path, setPath] = useState<'selection' | 'cast' | 'crew'>('selection');
   const [roleDetail, setRoleDetail] = useState('');
   const [portfolioLink, setPortfolioLink] = useState('');
@@ -20,14 +18,11 @@ export function Onboarding() {
     }
     setLoading(true);
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        detailed_role: roleDetail,
-        role: 'Cast',
-        approval_status: 'approved',
-      })
-      .eq('id', user?.id);
+    const { error } = await supabase.rpc('complete_onboarding', {
+      chosen_role: roleDetail,
+      link: null,
+      path: null
+    });
 
     setLoading(false);
     if (error) {
@@ -65,19 +60,11 @@ export function Onboarding() {
       portfolioPath = data.path;
     }
 
-    // Assign 'Director' role for permissions if they chose Director
-    const broadRole = roleDetail === 'Director' ? 'Director' : 'Cast';
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        detailed_role: roleDetail,
-        role: broadRole,
-        portfolio_link: portfolioLink.trim() || null,
-        portfolio_path: portfolioPath,
-        approval_status: 'pending_admin',
-      })
-      .eq('id', user?.id);
+    const { error } = await supabase.rpc('complete_onboarding', {
+      chosen_role: roleDetail,
+      link: portfolioLink.trim() || null,
+      path: portfolioPath
+    });
 
     setLoading(false);
     if (error) {

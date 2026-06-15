@@ -11,12 +11,7 @@ export function AccountRejected() {
 
   async function handleReapply() {
     // Reset status back to onboarding so they can correct details
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { error } = await supabase
-      .from('profiles')
-      .update({ approval_status: 'pending_onboarding' })
-      .eq('id', user.id);
+    const { error } = await supabase.rpc('reapply_onboarding');
       
     if (error) {
       showToast(`Error: ${error.message}`, 'danger');
