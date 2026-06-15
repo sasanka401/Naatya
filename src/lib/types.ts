@@ -40,10 +40,17 @@ export interface Rehearsal {
   created_at?: string;
 }
 
+export type ApprovalStatus = 'pending_onboarding' | 'pending_admin' | 'approved' | 'rejected';
+
 export interface Profile {
   id: string;
   email: string;
   role: UserRole;
+  detailed_role: string | null;
+  approval_status: ApprovalStatus;
+  portfolio_link: string | null;
+  portfolio_path: string | null;
+  is_admin: boolean;
   member_id: string | null;
   created_at?: string;
 }

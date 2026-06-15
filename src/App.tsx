@@ -12,11 +12,15 @@ import { Characters } from './pages/Characters';
 import { Team } from './pages/Team';
 import { Profile } from './pages/Profile';
 import { Security } from './pages/Security';
+import { Onboarding } from './pages/Onboarding';
+import { PendingApproval } from './pages/PendingApproval';
+import { AccountRejected } from './pages/AccountRejected';
+import { AdminApprovals } from './pages/AdminApprovals';
 import { supabase } from './lib/supabase';
 import { AuthProvider, useAuth } from './lib/auth-context';
 import { ProductionProvider } from './lib/production-context';
 
-type Page = 'dashboard' | 'members' | 'characters' | 'inventory' | 'rehearsals' | 'scripts' | 'team' | 'profile' | 'security';
+type Page = 'dashboard' | 'members' | 'characters' | 'inventory' | 'rehearsals' | 'scripts' | 'team' | 'profile' | 'security' | 'admin_approvals';
 
 const pageTitles: Record<Page, string> = {
   dashboard:  'Dashboard',
@@ -28,10 +32,11 @@ const pageTitles: Record<Page, string> = {
   team:       'Team & Access Management',
   profile:    'My Profile',
   security:   'Security Information',
+  admin_approvals: 'Admin Approvals',
 };
 
 function AppShell() {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const [page, setPage] = useState<Page>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tabHidden, setTabHidden] = useState(false);
@@ -77,7 +82,50 @@ function AppShell() {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, []);
+  // Realtime surveillance alerts for Directors/Writers
+  useEffect(() => {
+    if (!profile) return;
 
+    const isDirectorOrWriter = ['Director', 'Writer'].includes(profile.detailed_role ?? '') || profile.role === 'Director';
+    if (!isDirectorOrWriter) return;
+
+    // Realtime channel for Script Room entries
+    const presenceChannel = supabase
+      .channel('script-presence-alerts')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'script_room_presence'
+      }, async (payload) => {
+        const { data } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', payload.new.profile_id)
+          .maybeSingle();
+        
+        if (data?.email) {
+          showToast(`User ${data.email} has just entered the Script Room.`, 'info');
+        }
+      })
+      .subscribe();
+
+    // Realtime channel for Security alarms (screenshots/blurs)
+    const alarmChannel = supabase
+      .channel('security-alarm-alerts')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'security_alarms'
+      }, (payload) => {
+        showToast(`SECURITY ALERT: ${payload.new.user_email} attempted ${payload.new.action_attempted}!`, 'danger');
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(presenceChannel);
+      supabase.removeChannel(alarmChannel);
+    };
+  }, [profile]);
   async function handleLogout() {
     await supabase.auth.signOut();
     showToast('Logged out successfully.', 'info');
@@ -91,6 +139,36 @@ function AppShell() {
     return (
       <>
         <Login onLogin={() => { /* auth state listener handles the rest */ }} />
+        <ToastContainer />
+      </>
+    );
+  }
+
+  // Handle onboarding profile pop-up
+  if (profile?.approval_status === 'pending_onboarding') {
+    return (
+      <>
+        <Onboarding />
+        <ToastContainer />
+      </>
+    );
+  }
+
+  // Handle pending admin approvals
+  if (profile?.approval_status === 'pending_admin') {
+    return (
+      <>
+        <PendingApproval />
+        <ToastContainer />
+      </>
+    );
+  }
+
+  // Handle rejected profiles
+  if (profile?.approval_status === 'rejected') {
+    return (
+      <>
+        <AccountRejected />
         <ToastContainer />
       </>
     );
@@ -117,6 +195,7 @@ function AppShell() {
           {page === 'team'       && <Team />}
           {page === 'profile'    && <Profile />}
           {page === 'security'   && <Security />}
+          {page === 'admin_approvals' && <AdminApprovals />}
         </main>
       </div>
 

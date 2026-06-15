@@ -9,6 +9,8 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   isDirector: boolean;
+  isWriter: boolean;
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -16,6 +18,8 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   loading: true,
   isDirector: false,
+  isWriter: false,
+  isAdmin: false,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -56,10 +60,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const isDirector = profile?.role === 'Director';
+  const isDirector = profile?.detailed_role === 'Director' || profile?.role === 'Director';
+  const isWriter = profile?.detailed_role === 'Writer';
+  const isAdmin = profile?.is_admin === true;
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isDirector }}>
+    <AuthContext.Provider value={{ user, profile, loading, isDirector, isWriter, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );

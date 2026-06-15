@@ -4,7 +4,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../lib/auth-context';
 
-type Page = 'dashboard' | 'members' | 'characters' | 'inventory' | 'rehearsals' | 'scripts' | 'team' | 'profile' | 'security';
+type Page = 'dashboard' | 'members' | 'characters' | 'inventory' | 'rehearsals' | 'scripts' | 'team' | 'profile' | 'security' | 'admin_approvals';
 
 interface Props {
   current: Page;
@@ -50,15 +50,21 @@ export function Sidebar({ current, onNavigate, onLogout, open, onClose }: Props)
 
         <nav className="sidebar-nav">
           <div className="nav-section">Main</div>
-          {links.map(({ page, label, Icon }) => (
-            <button
-              key={page}
-              className={`sidebar-link${current === page ? ' active' : ''}`}
-              onClick={() => nav(page)}
-            >
-              <Icon size={18} /> {label}
-            </button>
-          ))}
+          {links
+            .filter(({ page }) => {
+              if (page !== 'scripts') return true;
+              const dRole = profile?.detailed_role ?? '';
+              return ['Director', 'Writer', 'Actor', 'Actress', 'Supporting Actor', 'Supporting Actress'].includes(dRole) || profile?.role === 'Director';
+            })
+            .map(({ page, label, Icon }) => (
+              <button
+                key={page}
+                className={`sidebar-link${current === page ? ' active' : ''}`}
+                onClick={() => nav(page)}
+              >
+                <Icon size={18} /> {label}
+              </button>
+            ))}
 
           <div className="nav-section" style={{ marginTop: '0.5rem' }}>Account</div>
           <button
@@ -69,6 +75,15 @@ export function Sidebar({ current, onNavigate, onLogout, open, onClose }: Props)
           </button>
 
           <div className="nav-section" style={{ marginTop: '0.5rem' }}>System</div>
+          {profile?.is_admin && (
+            <button
+              className={`sidebar-link${current === 'admin_approvals' ? ' active' : ''}`}
+              onClick={() => nav('admin_approvals')}
+              style={{ background: 'rgba(5, 150, 105, 0.15)', color: 'var(--naatya-success)' }}
+            >
+              <ShieldCheck size={18} /> Admin Approvals
+            </button>
+          )}
           {isDirector && (
             <button
               className={`sidebar-link${current === 'team' ? ' active' : ''}`}
