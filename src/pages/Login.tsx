@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Layers, User, Lock, KeyRound, Eye, EyeOff } from 'lucide-react';
+import { Layers, User, Lock, Eye, EyeOff } from 'lucide-react';
 import { showToast } from '../components/Toast';
 import { supabase } from '../lib/supabase';
 
@@ -12,7 +12,6 @@ export function Login({ onLogin }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [inviteCode, setInviteCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -32,10 +31,6 @@ export function Login({ onLogin }: Props) {
     }
 
     if (mode === 'signup') {
-      if (!inviteCode.trim()) {
-        showToast('An invite code is required to sign up.', 'warning');
-        return;
-      }
       if (password.length < 6) {
         showToast('Password must be at least 6 characters.', 'warning');
         return;
@@ -47,19 +42,6 @@ export function Login({ onLogin }: Props) {
 
       setLoading(true);
 
-      const { data: invite, error: inviteError } = await supabase
-        .from('invite_codes')
-        .select('*')
-        .eq('code', inviteCode.trim())
-        .eq('used', false)
-        .maybeSingle();
-
-      if (inviteError || !invite) {
-        setLoading(false);
-        showToast('Invalid or already-used invite code.', 'danger');
-        return;
-      }
-
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) {
         setLoading(false);
@@ -68,13 +50,8 @@ export function Login({ onLogin }: Props) {
       }
 
       if (data.session) {
-        const { error: redeemError } = await supabase.rpc('redeem_invite', { invite_code: inviteCode.trim() });
         setLoading(false);
-        if (redeemError) {
-          showToast(`Account made, but code redemption failed: ${redeemError.message}`, 'warning');
-        } else {
-          showToast('Account created successfully!', 'success');
-        }
+        showToast('Account created successfully!', 'success');
         onLogin();
       } else {
         setLoading(false);
@@ -88,10 +65,6 @@ export function Login({ onLogin }: Props) {
 
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (!error && inviteCode.trim()) {
-      await supabase.rpc('redeem_invite', { invite_code: inviteCode.trim() }).then(() => {});
-    }
 
     setLoading(false);
 
@@ -177,48 +150,30 @@ export function Login({ onLogin }: Props) {
           </div>
 
           {mode === 'signup' && (
-            <>
-              <div className="form-group">
-                <label className="form-label" htmlFor="login-confirm-password">Confirm Password</label>
-                <div className="input-wrap">
-                  <span className="input-icon"><Lock size={16} /></span>
-                  <input
-                    id="login-confirm-password"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    className="form-input has-toggle"
-                    placeholder="Re-enter password"
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    autoComplete="new-password"
-                  />
-                  <button
-                    type="button"
-                    className="input-toggle"
-                    onClick={() => setShowConfirmPassword(v => !v)}
-                    aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
-                    tabIndex={-1}
-                  >
-                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="login-confirm-password">Confirm Password</label>
+              <div className="input-wrap">
+                <span className="input-icon"><Lock size={16} /></span>
+                <input
+                  id="login-confirm-password"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  className="form-input has-toggle"
+                  placeholder="Re-enter password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  className="input-toggle"
+                  onClick={() => setShowConfirmPassword(v => !v)}
+                  aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                  tabIndex={-1}
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="login-invite-code">Invite Code</label>
-                <div className="input-wrap">
-                  <span className="input-icon"><KeyRound size={16} /></span>
-                  <input
-                    id="login-invite-code"
-                    type="text"
-                    className="form-input"
-                    placeholder="Enter invite code from your Director"
-                    value={inviteCode}
-                    onChange={e => setInviteCode(e.target.value)}
-                    autoComplete="off"
-                  />
-                </div>
-              </div>
-            </>
+            </div>
           )}
 
           <button type="submit" className="btn-login" disabled={loading}>

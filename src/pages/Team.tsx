@@ -1,27 +1,18 @@
 import { useState, useEffect } from 'react';
-import { UserCog, ShieldCheck, KeyRound, Plus, Trash2, Copy, Clapperboard } from 'lucide-react';
+import { UserCog, ShieldCheck, Plus, Trash2, Clapperboard } from 'lucide-react';
 import { showToast } from '../components/Toast';
 import { logActivity } from '../lib/activity';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth-context';
 import { useProduction } from '../lib/production-context';
-import type { Profile, Member, UserRole, InviteCode, Production } from '../lib/types';
-
-function randomCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let out = '';
-  for (let i = 0; i < 8; i++) out += chars[Math.floor(Math.random() * chars.length)];
-  return out;
-}
+import type { Profile, Member, UserRole, Production } from '../lib/types';
 
 export function Team() {
   const { user } = useAuth();
   const { productions, reload: reloadProductions } = useProduction();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
-  const [invites, setInvites] = useState<InviteCode[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newInviteRole, setNewInviteRole] = useState<UserRole>('Cast');
   const [newProductionName, setNewProductionName] = useState('');
 
   useEffect(() => {
@@ -30,10 +21,9 @@ export function Team() {
 
   async function load() {
     setLoading(true);
-    const [profilesRes, membersRes, invitesRes] = await Promise.all([
+    const [profilesRes, membersRes] = await Promise.all([
       supabase.from('profiles').select('*').order('created_at', { ascending: true }),
       supabase.from('members').select('*').order('name', { ascending: true }),
-      supabase.from('invite_codes').select('*').order('created_at', { ascending: false }),
     ]);
 
     if (profilesRes.error) showToast(`Failed to load users: ${profilesRes.error.message}`, 'danger');
@@ -42,7 +32,6 @@ export function Team() {
     if (membersRes.error) showToast(`Failed to load members: ${membersRes.error.message}`, 'danger');
     else setMembers(membersRes.data as Member[]);
 
-    if (!invitesRes.error) setInvites(invitesRes.data as InviteCode[]);
     setLoading(false);
   }
 
@@ -68,29 +57,6 @@ export function Team() {
     setProfiles(prev => prev.map(p => p.id === profile.id ? { ...p, member_id: value } : p));
     const member = members.find(m => m.id === value);
     showToast(`Linked ${profile.email} to ${member ? member.name : 'no one'}.`, 'success');
-  }
-
-  async function createInvite() {
-    const code = randomCode();
-    const { data, error } = await supabase.from('invite_codes')
-      .insert({ code, role: newInviteRole })
-      .select().single();
-    if (error) { showToast(`Failed to create invite: ${error.message}`, 'danger'); return; }
-    setInvites(prev => [data as InviteCode, ...prev]);
-    showToast(`Invite code created: ${code}`, 'success');
-  }
-
-  async function deleteInvite(id: string) {
-    const { error } = await supabase.from('invite_codes').delete().eq('id', id);
-    if (error) { showToast(`Delete failed: ${error.message}`, 'danger'); return; }
-    setInvites(prev => prev.filter(i => i.id !== id));
-  }
-
-  function copyCode(code: string) {
-    navigator.clipboard?.writeText(code).then(
-      () => showToast('Code copied to clipboard.', 'success'),
-      () => showToast(`Code: ${code}`, 'info'),
-    );
   }
 
   async function createProduction() {
@@ -120,7 +86,7 @@ export function Team() {
         <div className="card-body">
           <p className="text-muted text-sm">
             Manage who has Director (full control) vs Cast (view-only) access, link each
-            account to a Cast &amp; Crew record, generate invite codes, and manage productions.
+            account to a Cast &amp; Crew record, and manage productions.
           </p>
         </div>
       </div>
@@ -150,51 +116,6 @@ export function Team() {
               </div>
             ))}
           </div>
-        </div>
-      </div>
-
-      {/* INVITE CODES */}
-      <div className="card mb-6">
-        <div className="card-header">
-          <h5><KeyRound size={16} className="text-accent" /> Invite Codes</h5>
-          <div className="flex items-center gap-2 flex-wrap">
-            <select className="form-select" style={{ width: 'auto' }} value={newInviteRole} onChange={e => setNewInviteRole(e.target.value as UserRole)}>
-              <option value="Cast">Cast</option>
-              <option value="Director">Director</option>
-            </select>
-            <button className="btn-primary" onClick={createInvite}><Plus size={15} /> Generate</button>
-          </div>
-        </div>
-        <div className="table-wrap">
-          <table className="naatya-table">
-            <thead>
-              <tr><th>Code</th><th>Role</th><th>Status</th><th>Actions</th></tr>
-            </thead>
-            <tbody>
-              {invites.length === 0 && (
-                <tr><td colSpan={4} style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--naatya-text-muted)' }}>No invite codes yet.</td></tr>
-              )}
-              {invites.map(inv => (
-                <tr key={inv.id}>
-                  <td className="font-semibold" style={{ fontFamily: 'monospace' }}>{inv.code}</td>
-                  <td><span className="role-badge">{inv.role}</span></td>
-                  <td>
-                    {inv.used
-                      ? <span className="badge badge-busy">Used</span>
-                      : <span className="badge badge-free">Available</span>}
-                  </td>
-                  <td>
-                    <div className="flex gap-2">
-                      {!inv.used && (
-                        <button className="btn-action btn-edit" onClick={() => copyCode(inv.code)} title="Copy"><Copy size={13} /></button>
-                      )}
-                      <button className="btn-action btn-del" onClick={() => deleteInvite(inv.id)} title="Delete"><Trash2 size={13} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       </div>
 
