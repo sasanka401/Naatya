@@ -32,9 +32,19 @@ export function Login({ onLogin }: Props) {
 
     if (mode === 'admin') {
       setLoading(true);
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      let { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-      if (error || !data.user) {
+      // If login fails and they are logging in as the dedicated admin email, auto-signup
+      if (error && email.toLowerCase() === 'admin@naatya.com') {
+        const signupRes = await supabase.auth.signUp({ email, password });
+        if (!signupRes.error && signupRes.data.user) {
+          const retryRes = await supabase.auth.signInWithPassword({ email, password });
+          data = retryRes.data;
+          error = retryRes.error;
+        }
+      }
+
+      if (error || !data?.user) {
         setLoading(false);
         showToast(error?.message ?? 'Login failed', 'danger');
         return;
