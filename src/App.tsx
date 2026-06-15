@@ -15,12 +15,12 @@ import { Security } from './pages/Security';
 import { Onboarding } from './pages/Onboarding';
 import { PendingApproval } from './pages/PendingApproval';
 import { AccountRejected } from './pages/AccountRejected';
-import { AdminApprovals } from './pages/AdminApprovals';
+import { AdminDashboard } from './pages/AdminDashboard';
 import { supabase } from './lib/supabase';
 import { AuthProvider, useAuth } from './lib/auth-context';
 import { ProductionProvider } from './lib/production-context';
 
-type Page = 'dashboard' | 'members' | 'characters' | 'inventory' | 'rehearsals' | 'scripts' | 'team' | 'profile' | 'security' | 'admin_approvals';
+type Page = 'dashboard' | 'members' | 'characters' | 'inventory' | 'rehearsals' | 'scripts' | 'team' | 'profile' | 'security';
 
 const pageTitles: Record<Page, string> = {
   dashboard:  'Dashboard',
@@ -32,7 +32,6 @@ const pageTitles: Record<Page, string> = {
   team:       'Team & Access Management',
   profile:    'My Profile',
   security:   'Security Information',
-  admin_approvals: 'Admin Approvals',
 };
 
 function AppShell() {
@@ -144,6 +143,16 @@ function AppShell() {
     );
   }
 
+  // Redirect Admins directly to the Admin Dashboard Console
+  if (profile?.is_admin) {
+    return (
+      <>
+        <AdminDashboard />
+        <ToastContainer />
+      </>
+    );
+  }
+
   // Handle onboarding profile pop-up
   if (profile?.approval_status === 'pending_onboarding') {
     return (
@@ -195,7 +204,6 @@ function AppShell() {
           {page === 'team'       && <Team />}
           {page === 'profile'    && <Profile />}
           {page === 'security'   && <Security />}
-          {page === 'admin_approvals' && <AdminApprovals />}
         </main>
       </div>
 

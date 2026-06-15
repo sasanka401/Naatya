@@ -4,7 +4,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../lib/auth-context';
 
-type Page = 'dashboard' | 'members' | 'characters' | 'inventory' | 'rehearsals' | 'scripts' | 'team' | 'profile' | 'security' | 'admin_approvals';
+type Page = 'dashboard' | 'members' | 'characters' | 'inventory' | 'rehearsals' | 'scripts' | 'team' | 'profile' | 'security';
 
 interface Props {
   current: Page;
@@ -75,15 +75,6 @@ export function Sidebar({ current, onNavigate, onLogout, open, onClose }: Props)
           </button>
 
           <div className="nav-section" style={{ marginTop: '0.5rem' }}>System</div>
-          {profile?.is_admin && (
-            <button
-              className={`sidebar-link${current === 'admin_approvals' ? ' active' : ''}`}
-              onClick={() => nav('admin_approvals')}
-              style={{ background: 'rgba(5, 150, 105, 0.15)', color: 'var(--naatya-success)' }}
-            >
-              <ShieldCheck size={18} /> Admin Approvals
-            </button>
-          )}
           {isDirector && (
             <button
               className={`sidebar-link${current === 'team' ? ' active' : ''}`}
