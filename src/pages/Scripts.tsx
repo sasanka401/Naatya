@@ -156,8 +156,6 @@ export function Scripts() {
   const [characterName, setCharacterName] = useState('');
 
   // Onboarding, Invite dropdown & version banner states
-  const [characters, setCharacters] = useState<any[]>([]);
-  const [selectedRole, setSelectedRole] = useState('');
   const [newVersionAvailable, setNewVersionAvailable] = useState<Script | null>(null);
   const [accessList, setAccessList] = useState<any[]>([]);
   const [otpCodeForTesting, setOtpCodeForTesting] = useState('');
@@ -206,22 +204,11 @@ export function Scripts() {
     if (isEditor) {
       loadSurveillance();
       subscribeSurveillance();
-      loadCharacters();
       loadAccessList();
     }
   }, [selectedId, user, profile]);
 
-  async function loadCharacters() {
-    if (!selectedId || selectedId === 'all') return;
-    const { data, error } = await supabase
-      .from('characters')
-      .select('*')
-      .eq('production_id', selectedId)
-      .order('name', { ascending: true });
-    if (!error && data) {
-      setCharacters(data);
-    }
-  }
+
 
   async function loadAccessList() {
     if (!selectedId || selectedId === 'all') return;
@@ -504,8 +491,7 @@ export function Scripts() {
 
     if (!error && data && data.status === 'active') {
       setHasAccessRow(true);
-      // Trigger OTP flow
-      generateAndSendOtp();
+      setIsOtpVerified(true); // Bypass OTP verification
     } else {
       setHasAccessRow(false);
     }
@@ -700,8 +686,8 @@ export function Scripts() {
       setSelectedId(targetProductionId);
       
       setHasAccessRow(true);
+      setIsOtpVerified(true); // Direct enter without OTP
       sessionStorage.removeItem('pending_invite_code'); // Clean up pending code
-      generateAndSendOtp();
     }
   }
 
@@ -742,49 +728,40 @@ export function Scripts() {
     let code = '';
     for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
 
+    // 1. Insert invite into script_room_invites
     const { error } = await supabase
       .from('script_room_invites')
       .insert({
         production_id: selectedId,
         code,
         recipient_email: recipientEmail.trim(),
-        role_name: selectedRole || null
+        role_name: null
       });
 
-    setGeneratingCode(false);
-
     if (error) {
+      setGeneratingCode(false);
       showToast(`Failed to generate code: ${error.message}`, 'danger');
-    } else {
-      setLatestGeneratedCode(code);
-      const activeProd = productions.find(p => p.id === selectedId);
-      const prodName = activeProd ? activeProd.name : 'our production';
-      
-      const emailContent = `Hello!\n\n` +
-        `Director ${user?.email} has invited you to join the production for the script: ${scripts[0]?.title || 'our production'}.\n` +
-        `Your assigned role is: ${selectedRole || 'Auditioning Cast'}.\n\n` +
-        `Please use this Invite Code to enter the room: ${code}\n` +
-        `Note: This code is valid for 24 hours only.\n\n` +
-        `Join here: ${window.location.origin}/?invite_code=${code}`;
-
-      alert(
-        `[MOCK EMAIL: ${recipientEmail.trim()}]\n` +
-        `Subject: Invitation to Join Production: ${prodName}\n\n` +
-        emailContent
-      );
-
-      // Trigger mailto link to open in user's local mail client
-      const subject = encodeURIComponent(`Invitation to Join Production: ${prodName}`);
-      const body = encodeURIComponent(emailContent);
-      
-      setTimeout(() => {
-        window.location.href = `mailto:${recipientEmail.trim()}?subject=${subject}&body=${body}`;
-      }, 500);
-
-      setRecipientEmail('');
-      setSelectedRole('');
-      showToast(`Generated code: ${code}`, 'success');
+      return;
     }
+
+    // 2. Check if user exists in profiles to trigger in-app notification
+    const { data: targetProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', recipientEmail.trim())
+      .maybeSingle();
+
+    if (targetProfile) {
+      await supabase.from('notifications').insert({
+        profile_id: targetProfile.id,
+        message: `You have been invited to join the script room. Your invite code is: ${code}`
+      });
+    }
+
+    setGeneratingCode(false);
+    setLatestGeneratedCode(code);
+    setRecipientEmail('');
+    showToast(`Invite code generated successfully!`, 'success');
   }
 
   async function loadScripts() {
@@ -1179,19 +1156,6 @@ export function Scripts() {
                 value={recipientEmail}
                 onChange={e => setRecipientEmail(e.target.value)}
               />
-              <select
-                className="form-input"
-                style={{ width: '250px' }}
-                value={selectedRole}
-                onChange={e => setSelectedRole(e.target.value)}
-              >
-                <option value="">Select Character Role</option>
-                {characters.map(char => (
-                  <option key={char.id} value={char.name}>
-                    {char.name}
-                  </option>
-                ))}
-              </select>
               <button className="btn-primary" onClick={handleGenerateInvite} disabled={generatingCode}>
                 Generate Invite
               </button>
@@ -1235,7 +1199,7 @@ export function Scripts() {
               </div>
             )}
             <p className="text-muted text-xs mt-2" style={{ fontStyle: 'italic' }}>
-              ℹ️ Codes expire automatically after 24 hours. Generating an invite will simulate an email notification to the cast member.
+              ℹ️ Codes expire automatically after 24 hours. Generating an invite will send an in-app notification if the user has an existing account.
             </p>
           </div>
         </div>
