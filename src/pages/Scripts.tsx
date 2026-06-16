@@ -115,7 +115,7 @@ function filterScript(text: string, characterName: string): string {
 
 export function Scripts() {
   const { user, profile } = useAuth();
-  const { selectedId, isAll, productions } = useProduction();
+  const { selectedId, isAll, productions, reload, setSelectedId } = useProduction();
   const [scripts, setScripts] = useState<Script[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -580,11 +580,10 @@ export function Scripts() {
     }
     setVerifyingInvite(true);
 
-    // Check invite table
+    // Check invite table (query by code only to find which production this is for)
     const { data: invite, error: inviteError } = await supabase
       .from('script_room_invites')
       .select('*')
-      .eq('production_id', selectedId)
       .eq('code', inviteCodeInput.trim())
       .eq('used', false)
       .maybeSingle();
@@ -592,6 +591,13 @@ export function Scripts() {
     if (inviteError || !invite) {
       setVerifyingInvite(false);
       showToast('Invalid or already-used invite code.', 'danger');
+      return;
+    }
+
+    const targetProductionId = invite.production_id;
+    if (!targetProductionId) {
+      setVerifyingInvite(false);
+      showToast('No production found linked to this invite.', 'danger');
       return;
     }
 
@@ -629,7 +635,7 @@ export function Scripts() {
           role: 'Cast',
           phone: '',
           status: 'Free',
-          production_id: selectedId
+          production_id: targetProductionId
         })
         .select()
         .single();
@@ -648,7 +654,7 @@ export function Scripts() {
       const { data: existingChar } = await supabase
         .from('characters')
         .select('id')
-        .eq('production_id', selectedId)
+        .eq('production_id', targetProductionId)
         .eq('name', invite.role_name)
         .maybeSingle();
 
@@ -661,7 +667,7 @@ export function Scripts() {
         await supabase
           .from('characters')
           .insert({
-            production_id: selectedId,
+            production_id: targetProductionId,
             name: invite.role_name,
             description: 'Cast via Invite Code',
             member_id: memberId
@@ -674,7 +680,7 @@ export function Scripts() {
     const { error: accessError } = await supabase
       .from('script_room_access')
       .insert({
-        production_id: selectedId,
+        production_id: targetProductionId,
         profile_id: user?.id,
         status: 'active'
       });
@@ -685,6 +691,11 @@ export function Scripts() {
       showToast(`Access config failed: ${accessError.message}`, 'danger');
     } else {
       showToast('Invite code validated! Access granted.', 'success');
+      
+      // Reload productions in context and set active production to the unlocked one
+      await reload();
+      setSelectedId(targetProductionId);
+      
       setHasAccessRow(true);
       sessionStorage.removeItem('pending_invite_code'); // Clean up pending code
       generateAndSendOtp();
@@ -921,14 +932,45 @@ export function Scripts() {
   if (selectedId === 'all') {
     return (
       <div className="content-area">
-        <div className="card text-center" style={{ padding: '3rem' }}>
+        <div className="card text-center mb-6" style={{ padding: '3rem' }}>
           <Lock size={40} className="text-muted mb-3 mx-auto" />
           <h5>Select a specific Production Room</h5>
           <p className="text-muted text-sm mt-2">
             The Script Room can only be accessed inside a specific active Production Room. 
-            Please select a production from the top dropdown menu.
+            {productions.length > 0 
+              ? "Please select a production from the top dropdown menu."
+              : "You have not joined any production rooms yet."}
           </p>
         </div>
+
+        {isCast && (
+          <div className="card" style={{ maxWidth: '480px', margin: '0 auto', padding: '2rem' }}>
+            <div style={{ textAlign: 'center' }} className="mb-4">
+              <Key size={30} className="text-accent mb-2 mx-auto" style={{ color: 'var(--naatya-accent)' }} />
+              <h5>Join a Production Room</h5>
+              <p className="text-muted text-xs mt-1">
+                Enter the unique invite code sent by your Director to unlock access.
+              </p>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Single-Use Invite Code</label>
+              <div className="input-wrap">
+                <span className="input-icon"><Key size={16} /></span>
+                <input
+                  className="form-input"
+                  placeholder="Enter 8-character code"
+                  value={inviteCodeInput}
+                  onChange={e => setInviteCodeInput(e.target.value)}
+                  maxLength={8}
+                  style={{ fontFamily: 'monospace', fontSize: '1.1rem', letterSpacing: '2px' }}
+                />
+              </div>
+            </div>
+            <button className="btn-login" onClick={handleUnlockRoom} disabled={verifyingInvite}>
+              {verifyingInvite ? 'Verifying Invite...' : 'Unlock Script Room'}
+            </button>
+          </div>
+        )}
       </div>
     );
   }
