@@ -17,7 +17,7 @@ import { AccountRejected } from './pages/AccountRejected';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { supabase } from './lib/supabase';
 import { AuthProvider, useAuth } from './lib/auth-context';
-import { ProductionProvider } from './lib/production-context';
+import { ProductionProvider, useProduction } from './lib/production-context';
 
 type Page = 'dashboard' | 'members' | 'characters' | 'inventory' | 'rehearsals' | 'scripts' | 'team' | 'profile' | 'security';
 
@@ -38,6 +38,30 @@ function AppShell() {
   const [page, setPage] = useState<Page>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tabHidden, setTabHidden] = useState(false);
+  const { setSelectedId } = useProduction();
+
+  // Redirect to scripts page and switch production when landing with a pending invite code
+  useEffect(() => {
+    if (!profile) return;
+    const pendingCode = sessionStorage.getItem('pending_invite_code');
+    if (!pendingCode) return;
+
+    async function resolveInvite() {
+      if (!pendingCode) return;
+      const { data, error } = await supabase
+        .from('script_room_invites')
+        .select('production_id')
+        .eq('code', pendingCode.trim())
+        .maybeSingle();
+
+      if (!error && data?.production_id) {
+        setSelectedId(data.production_id);
+        setPage('scripts');
+      }
+    }
+    
+    resolveInvite();
+  }, [profile]);
 
   // Security: blur on tab switch
   useEffect(() => {

@@ -1064,7 +1064,7 @@ table.naatya-table {
   flex-wrap: wrap;
   align-content: space-around;
   justify-content: space-around;
-  opacity: 0.12;
+  opacity: 0.15;
   overflow: hidden;
   transform: rotate(-30deg) scale(1.4);
   user-select: none;

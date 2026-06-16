@@ -13,6 +13,7 @@ const SCRIPT_BUCKET = 'scripts';
 
 interface ActivePresence {
   id: string;
+  profile_id: string;
   entered_at: string;
   profiles: {
     email: string;
@@ -154,6 +155,12 @@ export function Scripts() {
   // Character Name state for Cast scene filter
   const [characterName, setCharacterName] = useState('');
 
+  // Onboarding, Invite dropdown & version banner states
+  const [characters, setCharacters] = useState<any[]>([]);
+  const [selectedRole, setSelectedRole] = useState('');
+  const [newVersionAvailable, setNewVersionAvailable] = useState<Script | null>(null);
+  const [accessList, setAccessList] = useState<any[]>([]);
+
   async function fetchCharacterName() {
     if (!user) return;
     
@@ -183,7 +190,12 @@ export function Scripts() {
   // 1. Initial Access Verification & Surveillance load
   useEffect(() => {
     if (!selectedId || selectedId === 'all') return;
+    
     if (isCast) {
+      const pending = sessionStorage.getItem('pending_invite_code');
+      if (pending) {
+        setInviteCodeInput(pending);
+      }
       checkScriptRoomAccess();
       fetchCharacterName();
     } else {
@@ -193,8 +205,76 @@ export function Scripts() {
     if (isEditor) {
       loadSurveillance();
       subscribeSurveillance();
+      loadCharacters();
+      loadAccessList();
     }
   }, [selectedId, user]);
+
+  async function loadCharacters() {
+    if (!selectedId || selectedId === 'all') return;
+    const { data, error } = await supabase
+      .from('characters')
+      .select('*')
+      .eq('production_id', selectedId)
+      .order('name', { ascending: true });
+    if (!error && data) {
+      setCharacters(data);
+    }
+  }
+
+  async function loadAccessList() {
+    if (!selectedId || selectedId === 'all') return;
+    
+    const { data: accessData, error: accessErr } = await supabase
+      .from('script_room_access')
+      .select(`
+        id,
+        status,
+        joined_at,
+        profile_id,
+        profiles (
+          email,
+          member_id
+        )
+      `)
+      .eq('production_id', selectedId);
+
+    if (accessErr) {
+      console.error('Error loading access list:', accessErr);
+      return;
+    }
+
+    const { data: charData } = await supabase
+      .from('characters')
+      .select('name, member_id')
+      .eq('production_id', selectedId);
+
+    const charMap: Record<string, string> = {};
+    if (charData) {
+      charData.forEach(c => {
+        if (c.member_id) {
+          charMap[c.member_id] = c.name;
+        }
+      });
+    }
+
+    const mapped = (accessData || []).map((row: any) => {
+      const profileInfo = row.profiles;
+      const email = profileInfo?.email || 'Unknown';
+      const memberId = profileInfo?.member_id;
+      const charName = memberId ? (charMap[memberId] || 'Cast Member (Not Cast)') : 'Not Linked';
+      return {
+        id: row.id,
+        status: row.status,
+        joined_at: row.joined_at,
+        profile_id: row.profile_id,
+        email,
+        characterName: charName
+      };
+    });
+
+    setAccessList(mapped);
+  }
 
   // Load scripts once authenticated & verified
   useEffect(() => {
@@ -221,9 +301,17 @@ export function Scripts() {
       })
       .subscribe();
 
+    const accessSub = supabase
+      .channel('surveillance-access-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'script_room_access' }, () => {
+        loadAccessList();
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(presenceSub);
       supabase.removeChannel(alarmSub);
+      supabase.removeChannel(accessSub);
     };
   }
 
@@ -350,8 +438,9 @@ export function Scripts() {
         .from('script_room_presence')
         .select(`
           id,
+          profile_id,
           entered_at,
-          profiles (email, detailed_role)
+          profiles (id, email, detailed_role)
         `)
         .eq('production_id', selectedId),
       supabase
@@ -369,6 +458,39 @@ export function Scripts() {
       setSecurityAlarms(alarmsRes.data as SecurityAlarm[]);
     }
   }
+
+  // Realtime Script Versioning Notification Banner for Cast
+  useEffect(() => {
+    if (!viewer || !selectedId || selectedId === 'all') {
+      setNewVersionAvailable(null);
+      return;
+    }
+
+    const currentScriptTitle = viewer.script.title;
+    const currentScriptVersion = viewer.script.version || 1;
+
+    const versionChannel = supabase
+      .channel(`script-version-${viewer.script.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'scripts',
+        filter: `production_id=eq.${selectedId}`
+      }, (payload) => {
+        const newScript = payload.new as Script;
+        if (
+          newScript.title === currentScriptTitle &&
+          (newScript.version || 1) > currentScriptVersion
+        ) {
+          setNewVersionAvailable(newScript);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(versionChannel);
+    };
+  }, [viewer, selectedId]);
 
   async function checkScriptRoomAccess() {
     setCheckingAccess(true);
@@ -473,6 +595,13 @@ export function Scripts() {
       return;
     }
 
+    // Check expiration (24h validity)
+    if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
+      setVerifyingInvite(false);
+      showToast('Invalid or Expired Code', 'danger');
+      return;
+    }
+
     // Mark invite as used
     await supabase
       .from('script_room_invites')
@@ -482,6 +611,64 @@ export function Scripts() {
         used_at: new Date().toISOString()
       })
       .eq('id', invite.id);
+
+    // Auto-casting logic:
+    // 1. Get current profile's member_id
+    const { data: currentProfile } = await supabase
+      .from('profiles')
+      .select('member_id')
+      .eq('id', user?.id)
+      .maybeSingle();
+
+    let memberId = currentProfile?.member_id;
+    if (!memberId) {
+      const { data: newMember, error: memberError } = await supabase
+        .from('members')
+        .insert({
+          name: user?.email?.split('@')[0] || 'Cast Member',
+          role: 'Cast',
+          phone: '',
+          status: 'Free',
+          production_id: selectedId
+        })
+        .select()
+        .single();
+
+      if (!memberError && newMember) {
+        memberId = newMember.id;
+        await supabase
+          .from('profiles')
+          .update({ member_id: memberId })
+          .eq('id', user?.id);
+      }
+    }
+
+    // 2. Cast the member as the invited character role
+    if (invite.role_name && memberId) {
+      const { data: existingChar } = await supabase
+        .from('characters')
+        .select('id')
+        .eq('production_id', selectedId)
+        .eq('name', invite.role_name)
+        .maybeSingle();
+
+      if (existingChar) {
+        await supabase
+          .from('characters')
+          .update({ member_id: memberId })
+          .eq('id', existingChar.id);
+      } else {
+        await supabase
+          .from('characters')
+          .insert({
+            production_id: selectedId,
+            name: invite.role_name,
+            description: 'Cast via Invite Code',
+            member_id: memberId
+          });
+      }
+      setCharacterName(invite.role_name);
+    }
 
     // Insert access permission
     const { error: accessError } = await supabase
@@ -499,7 +686,7 @@ export function Scripts() {
     } else {
       showToast('Invite code validated! Access granted.', 'success');
       setHasAccessRow(true);
-      // Trigger Phase 2 OTP
+      sessionStorage.removeItem('pending_invite_code'); // Clean up pending code
       generateAndSendOtp();
     }
   }
@@ -546,7 +733,8 @@ export function Scripts() {
       .insert({
         production_id: selectedId,
         code,
-        recipient_email: recipientEmail.trim()
+        recipient_email: recipientEmail.trim(),
+        role_name: selectedRole || null
       });
 
     setGeneratingCode(false);
@@ -555,21 +743,61 @@ export function Scripts() {
       showToast(`Failed to generate code: ${error.message}`, 'danger');
     } else {
       setLatestGeneratedCode(code);
+      const activeProd = productions.find(p => p.id === selectedId);
+      const prodName = activeProd ? activeProd.name : 'our production';
+      
+      alert(
+        `[MOCK EMAIL: ${recipientEmail.trim()}]\n` +
+        `Subject: Invitation to Join Production: ${prodName}\n\n` +
+        `Hello!\n` +
+        `Director ${user?.email} has invited you to join the production for the script: ${scripts[0]?.title || 'our production'}.\n` +
+        `Your assigned role is: ${selectedRole || 'Auditioning Cast'}.\n\n` +
+        `Please use this Invite Code to enter the room: ${code}\n` +
+        `Note: This code is valid for 24 hours only.\n\n` +
+        `Join here: ${window.location.origin}/?invite_code=${code}`
+      );
+
       setRecipientEmail('');
+      setSelectedRole('');
       showToast(`Generated code: ${code}`, 'success');
     }
   }
 
   async function loadScripts() {
     setLoading(true);
-    let query = supabase.from('scripts').select('*').order('created_at', { ascending: false });
+    let query = supabase
+      .from('scripts')
+      .select(`
+        id,
+        title,
+        description,
+        storage_path,
+        uploaded_by,
+        production_id,
+        created_at,
+        version,
+        profiles:uploaded_by (
+          email
+        )
+      `)
+      .order('created_at', { ascending: false });
     if (!isAll) query = query.eq('production_id', selectedId);
     const { data, error } = await query;
 
     if (error) {
       showToast(`Failed to load scripts: ${error.message}`, 'danger');
     } else {
-      setScripts(data as Script[]);
+      const mapped = (data || []).map((s: any) => {
+        let profilesObj = null;
+        if (s.profiles) {
+          profilesObj = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles;
+        }
+        return {
+          ...s,
+          profiles: profilesObj
+        };
+      });
+      setScripts(mapped as Script[]);
     }
     setLoading(false);
   }
@@ -597,12 +825,29 @@ export function Scripts() {
       return;
     }
 
+    const prodId = isAll ? (productions[0]?.id ?? null) : selectedId;
+
+    // Get next version number
+    const { data: existingScripts } = await supabase
+      .from('scripts')
+      .select('version')
+      .eq('production_id', prodId)
+      .eq('title', title.trim())
+      .order('version', { ascending: false })
+      .limit(1);
+
+    let nextVersion = 1;
+    if (existingScripts && existingScripts.length > 0) {
+      nextVersion = (existingScripts[0].version || 1) + 1;
+    }
+
     const { error: insertError } = await supabase.from('scripts').insert({
       title,
       description: description || null,
       storage_path: path,
       uploaded_by: user?.id ?? null,
-      production_id: isAll ? (productions[0]?.id ?? null) : selectedId,
+      production_id: prodId,
+      version: nextVersion
     });
 
     setUploading(false);
@@ -611,8 +856,8 @@ export function Scripts() {
       return;
     }
 
-    showToast('Script uploaded successfully!', 'success');
-    logActivity(`${user?.email ?? 'Someone'} uploaded the script "${title}"`);
+    showToast(`Script uploaded successfully as V${nextVersion}!`, 'success');
+    logActivity(`${user?.email ?? 'Someone'} uploaded the script "${title}" (Version ${nextVersion})`);
     setModal(false);
     loadScripts();
   }
@@ -641,9 +886,22 @@ export function Scripts() {
       return;
     }
 
+    // Ensure uploader's email is fetched for the watermark
+    let scriptWithProfile = { ...script };
+    if (!scriptWithProfile.profiles && scriptWithProfile.uploaded_by) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', scriptWithProfile.uploaded_by)
+        .maybeSingle();
+      if (profileData) {
+        scriptWithProfile.profiles = { email: profileData.email };
+      }
+    }
+
     const { data, error } = await supabase.storage
       .from(SCRIPT_BUCKET)
-      .createSignedUrl(script.storage_path, 300);
+      .createSignedUrl(scriptWithProfile.storage_path, 300);
 
     if (error || !data) {
       showToast(`Could not open script: ${error?.message ?? 'unknown error'}`, 'danger');
@@ -654,9 +912,9 @@ export function Scripts() {
       const res = await fetch(data.signedUrl);
       const text = await res.text();
       const finalText = isCast ? filterScript(text, characterName) : text;
-      setViewer({ script, url: data.signedUrl, isText: true, text: finalText });
+      setViewer({ script: scriptWithProfile, url: data.signedUrl, isText: true, text: finalText });
     } else {
-      setViewer({ script, url: data.signedUrl, isText: false });
+      setViewer({ script: scriptWithProfile, url: data.signedUrl, isText: false });
     }
   }
 
@@ -764,7 +1022,7 @@ export function Scripts() {
     );
   }
 
-  const watermarkLabel = `${user?.email ?? 'unknown'} · ${new Date().toLocaleString()}`;
+
 
   return (
     <div className="content-area">
@@ -794,7 +1052,7 @@ export function Scripts() {
                       </div>
                       <button
                         className="btn-action btn-del"
-                        onClick={() => handleKickUser(p.id)}
+                        onClick={() => handleKickUser(p.profile_id)}
                         title="Kick User instantly"
                         style={{ display: 'flex', alignItems: 'center', gap: '0.1rem', fontSize: '0.7rem' }}
                       >
@@ -851,6 +1109,19 @@ export function Scripts() {
                 value={recipientEmail}
                 onChange={e => setRecipientEmail(e.target.value)}
               />
+              <select
+                className="form-input"
+                style={{ width: '250px' }}
+                value={selectedRole}
+                onChange={e => setSelectedRole(e.target.value)}
+              >
+                <option value="">Select Character Role</option>
+                {characters.map(char => (
+                  <option key={char.id} value={char.name}>
+                    {char.name}
+                  </option>
+                ))}
+              </select>
               <button className="btn-primary" onClick={handleGenerateInvite} disabled={generatingCode}>
                 Generate Invite
               </button>
@@ -863,6 +1134,9 @@ export function Scripts() {
                 </div>
               )}
             </div>
+            <p className="text-muted text-xs mt-2" style={{ fontStyle: 'italic' }}>
+              ℹ️ Codes expire automatically after 24 hours. Generating an invite will simulate an email notification to the cast member.
+            </p>
           </div>
         </div>
       )}
@@ -908,6 +1182,81 @@ export function Scripts() {
           )}
         </div>
       </div>
+
+      {isEditor && (
+        <div className="card mt-6">
+          <div className="card-header">
+            <h5>Production Cast & Access</h5>
+          </div>
+          <div className="card-body">
+            {accessList.length === 0 ? (
+              <p className="text-muted text-sm">No cast members have accessed this room yet.</p>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.5rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--naatya-border)', textAlign: 'left' }}>
+                      <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.8rem', color: 'var(--naatya-text-muted)' }}>Email</th>
+                      <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.8rem', color: 'var(--naatya-text-muted)' }}>Assigned Character Role</th>
+                      <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.8rem', color: 'var(--naatya-text-muted)' }}>Joined Date</th>
+                      <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.8rem', color: 'var(--naatya-text-muted)' }}>Status</th>
+                      <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.8rem', color: 'var(--naatya-text-muted)' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {accessList.map(row => (
+                      <tr key={row.id} style={{ borderBottom: '1px solid var(--naatya-border-subtle)' }}>
+                        <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.85rem' }}>{row.email}</td>
+                        <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.85rem' }}>
+                          <span style={{
+                            padding: '0.2rem 0.5rem',
+                            borderRadius: '4px',
+                            background: 'rgba(99, 102, 241, 0.1)',
+                            color: 'var(--naatya-accent)',
+                            fontSize: '0.75rem',
+                            fontWeight: 600
+                          }}>
+                            {row.characterName}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.85rem', color: 'var(--naatya-text-muted)' }}>
+                          {new Date(row.joined_at).toLocaleDateString()}
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.85rem' }}>
+                          <span style={{
+                            padding: '0.2rem 0.5rem',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            background: row.status === 'active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                            color: row.status === 'active' ? '#10b981' : '#ef4444'
+                          }}>
+                            {row.status === 'active' ? 'Active' : 'Revoked'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.85rem' }}>
+                          {row.status === 'active' && (
+                            <button
+                              className="btn-action btn-del"
+                              onClick={async () => {
+                                await handleKickUser(row.profile_id);
+                                loadAccessList();
+                              }}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                            >
+                              <UserMinus size={12} /> Revoke Access
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {modal && (
         <Modal
@@ -959,13 +1308,52 @@ export function Scripts() {
         >
           <div className="script-viewer-box" style={{ userSelect: 'none' }}>
             <div className="script-viewer-header">
-              <h5>{viewer.script.title}</h5>
+              <h5>{viewer.script.title} {viewer.script.version ? `(V${viewer.script.version})` : ''}</h5>
               <button className="modal-close" onClick={() => setViewer(null)}>
                 <X size={20} />
               </button>
             </div>
             <div className="script-viewer-body" style={{ position: 'relative' }}>
-              <Watermark label={watermarkLabel} />
+              {/* Real-time Version Update Banner */}
+              {newVersionAvailable && (
+                <div style={{
+                  background: 'rgba(245, 158, 11, 0.95)',
+                  color: '#000',
+                  padding: '0.75rem 1rem',
+                  borderRadius: '8px',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)',
+                  animation: 'slideDown 0.3s ease'
+                }}>
+                  <span>🎭 Newer version (V{newVersionAvailable.version}) of this script is available.</span>
+                  <button
+                    onClick={async () => {
+                      const latest = newVersionAvailable;
+                      setNewVersionAvailable(null);
+                      await view(latest);
+                    }}
+                    style={{
+                      background: '#000',
+                      color: '#fff',
+                      border: 'none',
+                      padding: '0.3rem 0.75rem',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      marginLeft: '1rem',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    Click here to reload
+                  </button>
+                </div>
+              )}
+              <Watermark label={`${viewer.script.profiles?.email || 'Director'} · ${new Date().toLocaleString()}`} />
               {viewer.isText ? (
                 <div style={{ userSelect: 'none', whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '0.9rem', lineHeight: '1.5' }}>{viewer.text}</div>
               ) : (

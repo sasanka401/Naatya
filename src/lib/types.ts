@@ -63,6 +63,10 @@ export interface Script {
   uploaded_by: string | null;
   production_id?: string | null;
   created_at?: string;
+  version?: number;
+  profiles?: {
+    email: string;
+  } | null;
 }
 
 export interface ActivityLogEntry {

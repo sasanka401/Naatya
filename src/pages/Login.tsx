@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Layers, User, Lock, Eye, EyeOff } from 'lucide-react';
 import { showToast } from '../components/Toast';
 import { supabase } from '../lib/supabase';
@@ -15,6 +15,16 @@ export function Login({ onLogin }: Props) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const inviteCode = params.get('invite_code') || params.get('invite');
+    if (inviteCode) {
+      sessionStorage.setItem('pending_invite_code', inviteCode);
+      setMode('signup');
+      showToast('Invite code detected! Please sign up to join the production.', 'info');
+    }
+  }, []);
 
   function switchMode(next: 'login' | 'signup' | 'admin') {
     setMode(next);
