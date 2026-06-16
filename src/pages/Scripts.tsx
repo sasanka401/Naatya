@@ -757,16 +757,26 @@ export function Scripts() {
       const activeProd = productions.find(p => p.id === selectedId);
       const prodName = activeProd ? activeProd.name : 'our production';
       
-      alert(
-        `[MOCK EMAIL: ${recipientEmail.trim()}]\n` +
-        `Subject: Invitation to Join Production: ${prodName}\n\n` +
-        `Hello!\n` +
+      const emailContent = `Hello!\n\n` +
         `Director ${user?.email} has invited you to join the production for the script: ${scripts[0]?.title || 'our production'}.\n` +
         `Your assigned role is: ${selectedRole || 'Auditioning Cast'}.\n\n` +
         `Please use this Invite Code to enter the room: ${code}\n` +
         `Note: This code is valid for 24 hours only.\n\n` +
-        `Join here: ${window.location.origin}/?invite_code=${code}`
+        `Join here: ${window.location.origin}/?invite_code=${code}`;
+
+      alert(
+        `[MOCK EMAIL: ${recipientEmail.trim()}]\n` +
+        `Subject: Invitation to Join Production: ${prodName}\n\n` +
+        emailContent
       );
+
+      // Trigger mailto link to open in user's local mail client
+      const subject = encodeURIComponent(`Invitation to Join Production: ${prodName}`);
+      const body = encodeURIComponent(emailContent);
+      
+      setTimeout(() => {
+        window.location.href = `mailto:${recipientEmail.trim()}?subject=${subject}&body=${body}`;
+      }, 500);
 
       setRecipientEmail('');
       setSelectedRole('');
