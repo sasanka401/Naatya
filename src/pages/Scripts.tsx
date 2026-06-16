@@ -120,8 +120,8 @@ export function Scripts() {
   const [loading, setLoading] = useState(true);
 
   // Auth flags
-  const isEditor = profile?.detailed_role && ['Director', 'Writer'].includes(profile.detailed_role);
-  const isCast = profile?.detailed_role && ['Actor', 'Actress', 'Supporting Actor', 'Supporting Actress'].includes(profile.detailed_role);
+  const isEditor = profile?.role === 'Director' || profile?.detailed_role === 'Writer';
+  const isCast = profile?.role === 'Cast' && profile?.detailed_role !== 'Writer';
   const canAccess = isEditor || isCast;
 
   // Onboarding Phase States (for Cast)
