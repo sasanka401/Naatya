@@ -160,6 +160,7 @@ export function Scripts() {
   const [selectedRole, setSelectedRole] = useState('');
   const [newVersionAvailable, setNewVersionAvailable] = useState<Script | null>(null);
   const [accessList, setAccessList] = useState<any[]>([]);
+  const [otpCodeForTesting, setOtpCodeForTesting] = useState('');
 
   async function fetchCharacterName() {
     if (!user) return;
@@ -534,9 +535,11 @@ export function Scripts() {
       return;
     }
 
+    setOtpCodeForTesting(code); // Save code to show on testing UI
+
     // Mock Email Toast
     alert(`[MOCK EMAIL: ${user.email}]\nSubject: Naatya Script Room Verification Code\n\nYour temporary verification code is: ${code}\n(Expires in 10 minutes)`);
-    showToast(`2FA verification code sent to ${user.email}`, 'info');
+    showToast(`2FA verification code sent to ${user.email}. Code: ${code}`, 'info');
   }
 
   async function verifyOtpCode() {
@@ -1060,6 +1063,21 @@ export function Scripts() {
                 style={{ fontFamily: 'monospace', fontSize: '1.1rem', letterSpacing: '4px' }}
               />
             </div>
+            {otpCodeForTesting && (
+              <div style={{
+                marginTop: '1rem',
+                padding: '0.75rem',
+                background: 'rgba(99, 102, 241, 0.1)',
+                border: '1px dashed var(--naatya-accent)',
+                borderRadius: '6px',
+                color: 'var(--naatya-accent)',
+                fontSize: '0.85rem',
+                textAlign: 'center',
+                fontWeight: 'semibold'
+              }}>
+                🔑 [MOCK EMAIL SIMULATION] Your code is: <strong style={{ letterSpacing: '2px', fontSize: '1.1rem' }}>{otpCodeForTesting}</strong>
+              </div>
+            )}
           </div>
           <div className="flex gap-3">
             <button className="btn-primary" style={{ flex: 1 }} onClick={verifyOtpCode} disabled={verifyingOtp}>
