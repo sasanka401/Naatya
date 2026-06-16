@@ -208,7 +208,7 @@ export function Scripts() {
       loadCharacters();
       loadAccessList();
     }
-  }, [selectedId, user]);
+  }, [selectedId, user, profile]);
 
   async function loadCharacters() {
     if (!selectedId || selectedId === 'all') return;
@@ -283,7 +283,7 @@ export function Scripts() {
         loadScripts();
       }
     }
-  }, [selectedId, hasAccessRow, isOtpVerified]);
+  }, [selectedId, hasAccessRow, isOtpVerified, profile]);
 
   // Real-time surveillance updates for Directors/Writers
   function subscribeSurveillance() {
@@ -1176,6 +1176,36 @@ export function Scripts() {
                 </div>
               )}
             </div>
+            {latestGeneratedCode && (
+              <div style={{
+                marginTop: '1rem',
+                padding: '1rem',
+                background: 'rgba(255, 255, 255, 0.03)',
+                borderRadius: '6px',
+                border: '1px dashed var(--naatya-border)'
+              }}>
+                <span className="text-xs text-muted block mb-1">Mock Invite Link (Direct copy/paste to test Cast user journey):</span>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    className="form-input"
+                    readOnly
+                    value={`${window.location.origin}/?invite_code=${latestGeneratedCode}`}
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                    style={{ fontSize: '0.85rem', fontFamily: 'monospace', flex: 1 }}
+                  />
+                  <button
+                    className="btn-primary"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/?invite_code=${latestGeneratedCode}`);
+                      showToast('Invite link copied to clipboard!', 'success');
+                    }}
+                    style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                  >
+                    Copy Link
+                  </button>
+                </div>
+              </div>
+            )}
             <p className="text-muted text-xs mt-2" style={{ fontStyle: 'italic' }}>
               ℹ️ Codes expire automatically after 24 hours. Generating an invite will simulate an email notification to the cast member.
             </p>
