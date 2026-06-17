@@ -10,6 +10,12 @@ export function Profile() {
   const [member, setMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [stageName, setStageName] = useState('');
+  const [address, setAddress] = useState('');
+  const [saving, setSaving] = useState(false);
 
   async function handleDeleteAccount() {
     const confirmDelete = window.confirm(
@@ -38,7 +44,13 @@ export function Profile() {
     setLoading(true);
     if (profile?.member_id) {
       const { data } = await supabase.from('members').select('*').eq('id', profile.member_id).maybeSingle();
-      setMember((data as Member) ?? null);
+      if (data) {
+        setMember(data as Member);
+        setName(data.name || '');
+        setPhone(data.phone || '');
+        setStageName(data.stage_name || '');
+        setAddress(data.address || '');
+      }
     } else {
       setMember(null);
     }
@@ -51,6 +63,37 @@ export function Profile() {
     if (error) { showToast(`Update failed: ${error.message}`, 'danger'); return; }
     setMember({ ...member, status });
     showToast(`Your availability is now "${status}".`, 'success');
+  }
+
+  async function handleSaveProfile(e: React.FormEvent) {
+    e.preventDefault();
+    if (!member) return;
+    setSaving(true);
+
+    const { error } = await supabase
+      .from('members')
+      .update({
+        name: name.trim(),
+        phone: phone.trim(),
+        stage_name: stageName.trim(),
+        address: address.trim()
+      })
+      .eq('id', member.id);
+
+    setSaving(false);
+    if (error) {
+      showToast(`Save failed: ${error.message}`, 'danger');
+    } else {
+      showToast('Profile updated successfully!', 'success');
+      setMember({
+        ...member,
+        name: name.trim(),
+        phone: phone.trim(),
+        stage_name: stageName.trim(),
+        address: address.trim()
+      });
+      setEditing(false);
+    }
   }
 
   return (
@@ -97,37 +140,115 @@ export function Profile() {
 
           {!loading && member && (
             <>
-              <div className="profile-grid mb-4">
-                <div className="profile-field">
-                  <div className="label">Name</div>
-                  <div className="value">{member.name}</div>
-                </div>
-                <div className="profile-field">
-                  <div className="label">Production Role</div>
-                  <div className="value">{member.role}</div>
-                </div>
-                <div className="profile-field">
-                  <div className="label">Phone</div>
-                  <div className="value">{member.phone}</div>
-                </div>
-                <div className="profile-field">
-                  <div className="label">Current Status</div>
-                  <div className="value">{member.status}</div>
-                </div>
-              </div>
+              {editing ? (
+                <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div className="grid-2">
+                    <div className="form-group">
+                      <label className="form-label">Full Name</label>
+                      <input
+                        className="form-input"
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Stage Name (Optional)</label>
+                      <input
+                        className="form-input"
+                        value={stageName}
+                        onChange={e => setStageName(e.target.value)}
+                        placeholder="e.g. Robin Hood"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Phone Number</label>
+                      <input
+                        className="form-input"
+                        value={phone}
+                        onChange={e => setPhone(e.target.value)}
+                        placeholder="+91 XXXXX XXXXX"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Production Role</label>
+                      <input
+                        className="form-input"
+                        value={member.role}
+                        disabled
+                        style={{ opacity: 0.7, cursor: 'not-allowed' }}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Address</label>
+                    <textarea
+                      className="form-input"
+                      value={address}
+                      onChange={e => setAddress(e.target.value)}
+                      placeholder="Enter full address"
+                      style={{ minHeight: '80px', resize: 'vertical', fontFamily: 'inherit' }}
+                    />
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <button type="submit" className="btn-primary" disabled={saving}>
+                      {saving ? 'Saving...' : 'Save Profile'}
+                    </button>
+                    <button type="button" className="btn-google" style={{ width: 'auto', border: '1px solid var(--naatya-border)' }} onClick={() => setEditing(false)}>
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  <div className="profile-grid mb-6">
+                    <div className="profile-field">
+                      <div className="label">Name</div>
+                      <div className="value">{member.name || '—'}</div>
+                    </div>
+                    <div className="profile-field">
+                      <div className="label">Stage Name</div>
+                      <div className="value">{member.stage_name || '—'}</div>
+                    </div>
+                    <div className="profile-field">
+                      <div className="label">Production Role</div>
+                      <div className="value">{member.role || '—'}</div>
+                    </div>
+                    <div className="profile-field">
+                      <div className="label">Phone</div>
+                      <div className="value">{member.phone || '—'}</div>
+                    </div>
+                    <div className="profile-field" style={{ gridColumn: 'span 2' }}>
+                      <div className="label">Address</div>
+                      <div className="value" style={{ whiteSpace: 'pre-wrap' }}>{member.address || '—'}</div>
+                    </div>
+                    <div className="profile-field">
+                      <div className="label">Current Status</div>
+                      <div className="value">{member.status || '—'}</div>
+                    </div>
+                  </div>
 
-              <label className="form-label">Update my availability</label>
-              <div className="rsvp-row">
-                {(['Free', 'Busy', 'On Leave'] as MemberStatus[]).map(s => (
-                  <button
-                    key={s}
-                    className={`rsvp-btn${member.status === s ? ' active-yes' : ''}`}
-                    onClick={() => updateStatus(s)}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
+                  <div className="flex justify-between items-center gap-4 flex-wrap mt-4" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem' }}>
+                    <div>
+                      <label className="form-label mb-2 block">Update my availability</label>
+                      <div className="rsvp-row">
+                        {(['Free', 'Busy', 'On Leave'] as MemberStatus[]).map(s => (
+                          <button
+                            key={s}
+                            className={`rsvp-btn${member.status === s ? ' active-yes' : ''}`}
+                            onClick={() => updateStatus(s)}
+                          >
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <button className="btn-primary" onClick={() => setEditing(true)} style={{ height: 'fit-content' }}>
+                      Edit Profile Details
+                    </button>
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>

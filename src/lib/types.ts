@@ -17,6 +17,8 @@ export interface Member {
   phone: string;
   status: MemberStatus;
   production_id?: string | null;
+  stage_name?: string | null;
+  address?: string | null;
   created_at?: string;
 }
 

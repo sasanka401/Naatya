@@ -29,6 +29,7 @@ export function Onboarding() {
       showToast(`Setup failed: ${error.message}`, 'danger');
     } else {
       showToast('Profile configured successfully! Welcome to Naatya.', 'success');
+      localStorage.setItem('redirect_to_profile', 'true');
       window.location.reload();
     }
   }
@@ -71,6 +72,7 @@ export function Onboarding() {
       showToast(`Submission failed: ${error.message}`, 'danger');
     } else {
       showToast('Portfolio submitted successfully! Pending admin approval.', 'success');
+      localStorage.setItem('redirect_to_profile', 'true');
       window.location.reload();
     }
   }
@@ -87,7 +89,8 @@ export function Onboarding() {
         {path === 'selection' && (
           <div className="flex flex-col gap-4 mt-4">
             <p className="text-center text-muted text-sm mb-2">
-              Choose your primary path to continue.
+              Welcome to Naatya! Before you continue, please tell us who you are.
+              You must choose a role to access your dashboard.
             </p>
             <button
               className="btn-google"
@@ -103,7 +106,7 @@ export function Onboarding() {
               }}
             >
               <Drama size={28} className="text-primary" />
-              <span className="font-semibold text-base">The Cast (The Talent)</span>
+              <span className="font-semibold text-base">I am Cast (The Talent)</span>
               <span className="text-xs text-muted font-normal text-center">
                 Actors, Actresses, and Performing Artists. Project-approved by Directors.
               </span>
@@ -123,7 +126,7 @@ export function Onboarding() {
               }}
             >
               <Wrench size={28} className="text-accent" />
-              <span className="font-semibold text-base">The Crew (Technical & Creative)</span>
+              <span className="font-semibold text-base">I am a Director / Crew</span>
               <span className="text-xs text-muted font-normal text-center">
                 Directors, Writers, Camera, Light, and Sound. Requires Admin approval.
               </span>

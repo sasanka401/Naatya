@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, FileText, Eye, X, Upload, Lock, ShieldAlert, Key, RefreshCw, UserMinus } from 'lucide-react';
+import { Plus, Trash2, FileText, Eye, X, Upload, Lock, ShieldAlert, Key, RefreshCw, UserMinus, UserPlus } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { Watermark } from '../components/Watermark';
 import { showToast } from '../components/Toast';
 import { logActivity } from '../lib/activity';
 import { supabase } from '../lib/supabase';
+import { sendOtpEmail } from '../lib/email';
 import { useAuth } from '../lib/auth-context';
 import { useProduction } from '../lib/production-context';
 import type { Script } from '../lib/types';
@@ -523,9 +524,14 @@ export function Scripts() {
 
     setOtpCodeForTesting(code); // Save code to show on testing UI
 
-    // Mock Email Toast
-    alert(`[MOCK EMAIL: ${user.email}]\nSubject: Naatya Script Room Verification Code\n\nYour temporary verification code is: ${code}\n(Expires in 10 minutes)`);
-    showToast(`2FA verification code sent to ${user.email}. Code: ${code}`, 'info');
+    // Send a REAL email via the send-email Edge Function (Resend).
+    const emailed = await sendOtpEmail(user.email ?? '', code);
+    if (emailed) {
+      showToast(`Verification code sent to ${user.email}. Check your inbox.`, 'success');
+    } else {
+      // Fallback for local testing when email isn't configured yet.
+      showToast(`Email not configured — using on-screen code: ${code}`, 'info');
+    }
   }
 
   async function verifyOtpCode() {
@@ -569,116 +575,17 @@ export function Scripts() {
     }
     setVerifyingInvite(true);
 
-    // Check invite table (query by code only to find which production this is for)
-    const { data: invite, error: inviteError } = await supabase
-      .from('script_room_invites')
-      .select('*')
-      .eq('code', inviteCodeInput.trim())
-      .eq('used', false)
-      .maybeSingle();
+    // Call the database function to redeem the invite and grant access atomically
+    const { data: targetProductionId, error: rpcError } = await supabase.rpc('redeem_script_room_invite', {
+      invite_code: inviteCodeInput.trim()
+    });
 
-    if (inviteError || !invite) {
+    if (rpcError) {
       setVerifyingInvite(false);
-      showToast('Invalid or already-used invite code.', 'danger');
-      return;
-    }
-
-    const targetProductionId = invite.production_id;
-    if (!targetProductionId) {
-      setVerifyingInvite(false);
-      showToast('No production found linked to this invite.', 'danger');
-      return;
-    }
-
-    // Check expiration (24h validity)
-    if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
-      setVerifyingInvite(false);
-      showToast('Invalid or Expired Code', 'danger');
-      return;
-    }
-
-    // Mark invite as used
-    await supabase
-      .from('script_room_invites')
-      .update({
-        used: true,
-        used_by: user?.id,
-        used_at: new Date().toISOString()
-      })
-      .eq('id', invite.id);
-
-    // Auto-casting logic:
-    // 1. Get current profile's member_id
-    const { data: currentProfile } = await supabase
-      .from('profiles')
-      .select('member_id')
-      .eq('id', user?.id)
-      .maybeSingle();
-
-    let memberId = currentProfile?.member_id;
-    if (!memberId) {
-      const { data: newMember, error: memberError } = await supabase
-        .from('members')
-        .insert({
-          name: user?.email?.split('@')[0] || 'Cast Member',
-          role: 'Cast',
-          phone: '',
-          status: 'Free',
-          production_id: targetProductionId
-        })
-        .select()
-        .single();
-
-      if (!memberError && newMember) {
-        memberId = newMember.id;
-        await supabase
-          .from('profiles')
-          .update({ member_id: memberId })
-          .eq('id', user?.id);
-      }
-    }
-
-    // 2. Cast the member as the invited character role
-    if (invite.role_name && memberId) {
-      const { data: existingChar } = await supabase
-        .from('characters')
-        .select('id')
-        .eq('production_id', targetProductionId)
-        .eq('name', invite.role_name)
-        .maybeSingle();
-
-      if (existingChar) {
-        await supabase
-          .from('characters')
-          .update({ member_id: memberId })
-          .eq('id', existingChar.id);
-      } else {
-        await supabase
-          .from('characters')
-          .insert({
-            production_id: targetProductionId,
-            name: invite.role_name,
-            description: 'Cast via Invite Code',
-            member_id: memberId
-          });
-      }
-      setCharacterName(invite.role_name);
-    }
-
-    // Insert access permission
-    const { error: accessError } = await supabase
-      .from('script_room_access')
-      .insert({
-        production_id: targetProductionId,
-        profile_id: user?.id,
-        status: 'active'
-      });
-
-    setVerifyingInvite(false);
-
-    if (accessError) {
-      showToast(`Access config failed: ${accessError.message}`, 'danger');
+      showToast(`Access config failed: ${rpcError.message}`, 'danger');
     } else {
+      await fetchCharacterName();
+      setVerifyingInvite(false);
       showToast('Invite code validated! Access granted.', 'success');
       
       // Reload productions in context and set active production to the unlocked one
@@ -692,8 +599,6 @@ export function Scripts() {
   }
 
   async function handleKickUser(profileId: string) {
-    if (!confirm('Are you sure you want to kick this user from the Script Room?')) return;
-
     // Set status to kicked
     const { error: accessError } = await supabase
       .from('script_room_access')
@@ -712,6 +617,47 @@ export function Scripts() {
       showToast(`Kick failed: ${accessError.message}`, 'danger');
     } else {
       showToast('User has been kicked and active connection severed.', 'success');
+      loadSurveillance();
+    }
+  }
+
+  async function handleGrantAccess(profileId: string) {
+    // Set status to active
+    const { error: accessError } = await supabase
+      .from('script_room_access')
+      .update({ status: 'active' })
+      .eq('production_id', selectedId)
+      .eq('profile_id', profileId);
+
+    if (accessError) {
+      showToast(`Grant access failed: ${accessError.message}`, 'danger');
+    } else {
+      showToast('User has been granted access to the Script Room.', 'success');
+      loadSurveillance();
+    }
+  }
+
+  async function handleDeleteAccess(profileId: string) {
+    if (!confirm('Are you sure you want to permanently remove this user from the Script Room? They will need a new invite code to join again.')) return;
+
+    // Delete row from access table
+    const { error: accessError } = await supabase
+      .from('script_room_access')
+      .delete()
+      .eq('production_id', selectedId)
+      .eq('profile_id', profileId);
+
+    // Also remove active presence row
+    await supabase
+      .from('script_room_presence')
+      .delete()
+      .eq('production_id', selectedId)
+      .eq('profile_id', profileId);
+
+    if (accessError) {
+      showToast(`Remove failed: ${accessError.message}`, 'danger');
+    } else {
+      showToast('User has been permanently removed from the Script Room.', 'success');
       loadSurveillance();
     }
   }
@@ -744,7 +690,7 @@ export function Scripts() {
       return;
     }
 
-    // 2. Check if user exists in profiles to trigger in-app notification
+    // 2. Find the recipient's account so we can send an in-app notification.
     const { data: targetProfile } = await supabase
       .from('profiles')
       .select('id')
@@ -752,16 +698,24 @@ export function Scripts() {
       .maybeSingle();
 
     if (targetProfile) {
+      // User has an account -> drop the invite code straight into their
+      // in-app notifications (no email is sent).
       await supabase.from('notifications').insert({
         profile_id: targetProfile.id,
         message: `You have been invited to join the script room. Your invite code is: ${code}`
       });
+      setGeneratingCode(false);
+      setLatestGeneratedCode(code);
+      showToast(`Invite sent to ${recipientEmail.trim()} via in-app notification.`, 'success');
+    } else {
+      // No account yet -> we can't notify them in-app. Show the code so the
+      // Director can share it manually once the user signs up.
+      setGeneratingCode(false);
+      setLatestGeneratedCode(code);
+      showToast(`No account found for ${recipientEmail.trim()}. Share this code manually: ${code}`, 'info');
     }
 
-    setGeneratingCode(false);
-    setLatestGeneratedCode(code);
     setRecipientEmail('');
-    showToast(`Invite code generated successfully!`, 'success');
   }
 
   async function loadScripts() {
@@ -883,8 +837,7 @@ export function Scripts() {
     const isText = lower.endsWith('.txt') || lower.endsWith('.md');
 
     if (isCast && !isText) {
-      showToast('Security Alert: Cast members are restricted to text-based scripts only to enforce character-scene filters. PDF access is blocked.', 'danger');
-      return;
+      showToast('Notice: Character-scene filtering cannot be applied to PDF scripts. Showing full script.', 'info');
     }
 
     // Ensure uploader's email is fetched for the watermark
@@ -933,7 +886,7 @@ export function Scripts() {
           </p>
         </div>
 
-        {isCast && (
+        {isCast && productions.length === 0 && (
           <div className="card" style={{ maxWidth: '480px', margin: '0 auto', padding: '2rem' }}>
             <div style={{ textAlign: 'center' }} className="mb-4">
               <Key size={30} className="text-accent mb-2 mx-auto" style={{ color: 'var(--naatya-accent)' }} />
@@ -1052,7 +1005,7 @@ export function Scripts() {
                 textAlign: 'center',
                 fontWeight: 'semibold'
               }}>
-                🔑 [MOCK EMAIL SIMULATION] Your code is: <strong style={{ letterSpacing: '2px', fontSize: '1.1rem' }}>{otpCodeForTesting}</strong>
+                🔑 [Testing fallback] If email is configured, check your inbox. Code: <strong style={{ letterSpacing: '2px', fontSize: '1.1rem' }}>{otpCodeForTesting}</strong>
               </div>
             )}
           </div>
@@ -1075,7 +1028,7 @@ export function Scripts() {
     <div className="content-area">
       {/* 2. Director Live Surveillance & Management Dashboard */}
       {isEditor && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+        <div className="grid-2 mb-6">
           {/* Live Surveillance */}
           <div className="card">
             <div className="card-header">
@@ -1265,6 +1218,7 @@ export function Scripts() {
                       <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.8rem', color: 'var(--naatya-text-muted)' }}>Joined Date</th>
                       <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.8rem', color: 'var(--naatya-text-muted)' }}>Status</th>
                       <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.8rem', color: 'var(--naatya-text-muted)' }}>Action</th>
+                      <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.8rem', color: 'var(--naatya-text-muted)', textAlign: 'center' }}>Remove</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1299,7 +1253,7 @@ export function Scripts() {
                           </span>
                         </td>
                         <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.85rem' }}>
-                          {row.status === 'active' && (
+                          {row.status === 'active' ? (
                             <button
                               className="btn-action btn-del"
                               onClick={async () => {
@@ -1310,7 +1264,43 @@ export function Scripts() {
                             >
                               <UserMinus size={12} /> Revoke Access
                             </button>
+                          ) : (
+                            <button
+                              className="btn-action"
+                              onClick={async () => {
+                                await handleGrantAccess(row.profile_id);
+                                loadAccessList();
+                              }}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                padding: '0.25rem 0.5rem',
+                                fontSize: '0.75rem',
+                                background: 'rgba(16, 185, 129, 0.12)',
+                                color: 'var(--naatya-success)',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontWeight: 600
+                              }}
+                            >
+                              <UserPlus size={12} /> Give Access
+                            </button>
                           )}
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.85rem', textAlign: 'center' }}>
+                          <button
+                            className="btn-action btn-del"
+                            onClick={async () => {
+                              await handleDeleteAccess(row.profile_id);
+                              loadAccessList();
+                            }}
+                            title="Remove completely from Script Room"
+                            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                          >
+                            <Trash2 size={12} />
+                          </button>
                         </td>
                       </tr>
                     ))}

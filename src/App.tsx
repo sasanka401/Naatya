@@ -35,7 +35,14 @@ const pageTitles: Record<Page, string> = {
 
 function AppShell() {
   const { user, profile, loading } = useAuth();
-  const [page, setPage] = useState<Page>('dashboard');
+  const [page, setPage] = useState<Page>(() => {
+    const redirect = localStorage.getItem('redirect_to_profile');
+    if (redirect === 'true') {
+      localStorage.removeItem('redirect_to_profile');
+      return 'profile';
+    }
+    return 'dashboard';
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tabHidden, setTabHidden] = useState(false);
   const { setSelectedId } = useProduction();
@@ -219,7 +226,8 @@ function AppShell() {
         <p>Content hidden for security. Return to this tab to continue.</p>
       </div>
 
-      {profile?.approval_status === 'pending_onboarding' && (
+      {profile && !profile.is_admin &&
+        (profile.approval_status === 'pending_onboarding' || !profile.detailed_role) && (
         <div className="onboarding-overlay">
           <Onboarding />
         </div>

@@ -1194,3 +1194,18 @@ table.naatya-table {
   width: 100%;
 }
 
+/* ---- Responsive Helper Grids ---- */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 991px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+
