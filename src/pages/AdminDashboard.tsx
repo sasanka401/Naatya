@@ -674,14 +674,15 @@ export function AdminDashboard() {
                       <th>Admin Status</th>
                       <th>Verification Status</th>
                       <th>Actions</th>
+                      <th>Remove</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading && (
-                      <tr><td colSpan={8} style={{ textAlign: 'center', padding: '1.5rem' }}>Loading user directory...</td></tr>
+                      <tr><td colSpan={9} style={{ textAlign: 'center', padding: '1.5rem' }}>Loading user directory...</td></tr>
                     )}
                     {!loading && filteredDirectory.length === 0 && (
-                      <tr><td colSpan={8} style={{ textAlign: 'center', padding: '1.5rem' }}>No users found matching filters.</td></tr>
+                      <tr><td colSpan={9} style={{ textAlign: 'center', padding: '1.5rem' }}>No users found matching filters.</td></tr>
                     )}
                     {!loading && filteredDirectory.map(p => (
                       <tr key={p.id}>
@@ -704,23 +705,23 @@ export function AdminDashboard() {
                           {p.approval_status === 'rejected' && <span className="badge badge-busy">Rejected</span>}
                         </td>
                         <td>
-                          <div className="flex gap-2">
-                            <button 
-                              className="btn-action btn-edit" 
-                              onClick={() => handleOpenEditModal(p)} 
-                              title="Edit User"
-                            >
-                              <Pencil size={13} />
-                            </button>
-                            <button 
-                              className="btn-action btn-del" 
-                              onClick={() => handleDeleteUser(p)} 
-                              title="Delete User"
-                              style={{ color: 'var(--naatya-danger)' }}
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
+                          <button 
+                            className="btn-action btn-edit" 
+                            onClick={() => handleOpenEditModal(p)} 
+                            title="Edit User"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                        </td>
+                        <td>
+                          <button 
+                            className="btn-action btn-del" 
+                            onClick={() => handleDeleteUser(p)} 
+                            title="Delete User"
+                            style={{ color: 'var(--naatya-danger)' }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -763,14 +764,15 @@ export function AdminDashboard() {
                       <th>Production Name</th>
                       <th>Created At</th>
                       <th>Actions</th>
+                      <th>Remove</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading && (
-                      <tr><td colSpan={4} style={{ textAlign: 'center', padding: '1.5rem' }}>Loading productions...</td></tr>
+                      <tr><td colSpan={5} style={{ textAlign: 'center', padding: '1.5rem' }}>Loading productions...</td></tr>
                     )}
                     {!loading && productions.length === 0 && (
-                      <tr><td colSpan={4} style={{ textAlign: 'center', padding: '1.5rem' }}>No productions found.</td></tr>
+                      <tr><td colSpan={5} style={{ textAlign: 'center', padding: '1.5rem' }}>No productions found.</td></tr>
                     )}
                     {!loading && productions.map((p, i) => (
                       <tr key={p.id}>
@@ -780,27 +782,27 @@ export function AdminDashboard() {
                           {p.created_at ? new Date(p.created_at).toLocaleString() : '—'}
                         </td>
                         <td>
-                          <div className="flex gap-2">
-                            <button
-                              className="btn-action btn-edit"
-                              onClick={() => {
-                                setEditProd(p);
-                                setEditProdName(p.name);
-                                setShowEditProdModal(true);
-                              }}
-                              title="Rename Production"
-                            >
-                              <Pencil size={13} />
-                            </button>
-                            <button
-                              className="btn-action btn-del"
-                              onClick={() => handleDeleteProduction(p)}
-                              title="Delete Production"
-                              style={{ color: 'var(--naatya-danger)' }}
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
+                          <button
+                            className="btn-action btn-edit"
+                            onClick={() => {
+                              setEditProd(p);
+                              setEditProdName(p.name);
+                              setShowEditProdModal(true);
+                            }}
+                            title="Rename Production"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                        </td>
+                        <td>
+                          <button
+                            className="btn-action btn-del"
+                            onClick={() => handleDeleteProduction(p)}
+                            title="Delete Production"
+                            style={{ color: 'var(--naatya-danger)' }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </td>
                       </tr>
                     ))}
