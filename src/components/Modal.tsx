@@ -7,12 +7,13 @@ interface Props {
   onSave: () => void;
   saveLabel?: string;
   children: ReactNode;
+  size?: 'sm' | 'md' | 'lg';
 }
 
-export function Modal({ title, onClose, onSave, saveLabel = 'Save', children }: Props) {
+export function Modal({ title, onClose, onSave, saveLabel = 'Save', children, size = 'md' }: Props) {
   return (
     <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-box">
+      <div className={`modal-box modal-${size}`}>
         <div className="modal-header">
           <h5>{title}</h5>
           <button className="modal-close" onClick={onClose}><X size={20} /></button>

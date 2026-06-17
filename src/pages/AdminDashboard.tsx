@@ -352,23 +352,22 @@ export function AdminDashboard() {
   });
 
   return (
-    <div className="app-wrapper" style={{ minHeight: '100vh', display: 'flex' }}>
+    <div className="app-wrapper">
       {/* 1. Admin sidebar layout */}
-      <aside className={`sidebar${sidebarOpen ? ' open' : ''}`} style={{ background: '#1e293b', borderRight: '1px solid #334155' }}>
-        <div className="sidebar-brand" style={{ borderBottom: '1px solid #334155', paddingBottom: '1.25rem' }}>
-          <div className="sidebar-brand-icon" style={{ background: 'linear-gradient(135deg, #64748b, #475569)' }}>
+      <aside className={`sidebar sidebar-dark${sidebarOpen ? ' open' : ''}`}>
+        <div className="sidebar-brand">
+          <div className="sidebar-brand-icon">
             <ShieldCheck size={22} color="#fff" />
           </div>
-          <span className="sidebar-brand-text" style={{ color: '#f1f5f9' }}>ADMIN PORTAL</span>
+          <span className="sidebar-brand-text">ADMIN PORTAL</span>
         </div>
 
-        <nav className="sidebar-nav" style={{ flex: 1, padding: '1.25rem' }}>
-          <div className="nav-section" style={{ color: '#94a3b8' }}>System Management</div>
+        <nav className="sidebar-nav">
+          <div className="nav-section">System Management</div>
           
           <button
             className={`sidebar-link${activeTab === 'overview' ? ' active' : ''}`}
             onClick={() => { setActiveTab('overview'); setSidebarOpen(false); }}
-            style={activeTab === 'overview' ? { background: '#334155', color: '#fff' } : { color: '#94a3b8' }}
           >
             <LayoutDashboard size={18} /> Overview
           </button>
@@ -376,7 +375,6 @@ export function AdminDashboard() {
           <button
             className={`sidebar-link${activeTab === 'approvals' ? ' active' : ''}`}
             onClick={() => { setActiveTab('approvals'); setSidebarOpen(false); }}
-            style={activeTab === 'approvals' ? { background: '#334155', color: '#fff' } : { color: '#94a3b8' }}
           >
             <ShieldCheck size={18} /> Crew Approvals
             {pendingApprovals.length > 0 && (
@@ -389,7 +387,6 @@ export function AdminDashboard() {
           <button
             className={`sidebar-link${activeTab === 'surveillance' ? ' active' : ''}`}
             onClick={() => { setActiveTab('surveillance'); setSidebarOpen(false); }}
-            style={activeTab === 'surveillance' ? { background: '#334155', color: '#fff' } : { color: '#94a3b8' }}
           >
             <AlertOctagon size={18} /> System Alarms
             {stats.totalAlarms > 0 && (
@@ -402,7 +399,6 @@ export function AdminDashboard() {
           <button
             className={`sidebar-link${activeTab === 'directory' ? ' active' : ''}`}
             onClick={() => { setActiveTab('directory'); setSidebarOpen(false); }}
-            style={activeTab === 'directory' ? { background: '#334155', color: '#fff' } : { color: '#94a3b8' }}
           >
             <Users size={18} /> User Directory
           </button>
@@ -410,14 +406,13 @@ export function AdminDashboard() {
           <button
             className={`sidebar-link${activeTab === 'productions' ? ' active' : ''}`}
             onClick={() => { setActiveTab('productions'); setSidebarOpen(false); }}
-            style={activeTab === 'productions' ? { background: '#334155', color: '#fff' } : { color: '#94a3b8' }}
           >
             <Clapperboard size={18} /> Productions
           </button>
         </nav>
 
-        <div className="sidebar-footer" style={{ borderTop: '1px solid #334155', padding: '1rem' }}>
-          <button className="sidebar-link" onClick={handleLogout} style={{ width: '100%', color: '#f87171' }}>
+        <div className="sidebar-footer">
+          <button className="sidebar-link" onClick={handleLogout} style={{ color: '#f87171' }}>
             <LogOut size={18} /> Log Out Console
           </button>
         </div>
@@ -426,28 +421,28 @@ export function AdminDashboard() {
       {sidebarOpen && <div className="sidebar-overlay show" onClick={() => setSidebarOpen(false)} />}
 
       {/* 2. Admin content panel */}
-      <main className="main-content" style={{ flex: 1, background: '#f8fafc' }}>
-        <header className="top-navbar" style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1.5rem', height: 'var(--topbar-height)', position: 'sticky', top: 0, zIndex: 1020 }}>
+      <main className="main-content">
+        <header className="top-navbar">
           <div className="flex items-center gap-3">
             <button className="hamburger" onClick={() => setSidebarOpen(o => !o)}><Menu size={22} /></button>
-            <span className="page-title" style={{ fontWeight: 600, color: '#0f172a' }}>Admin Console</span>
+            <span className="page-title">Admin Console</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="user-badge">
               <span className="text-muted text-xs">Logged in as admin</span>
             </div>
-            <div className="user-avatar" style={{ background: 'linear-gradient(135deg, #64748b, #475569)' }}>A</div>
+            <div className="user-avatar">A</div>
           </div>
         </header>
         
         {/* Overview view */}
         {activeTab === 'overview' && (
           <div className="content-area">
-            <div className="card mb-6" style={{ background: '#fff', border: '1px solid #e2e8f0' }}>
-              <div className="card-header" style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <h4 className="flex items-center gap-2" style={{ fontWeight: 700, fontSize: '1.25rem', color: '#0f172a' }}>
+            <div className="card mb-6">
+              <div className="card-header">
+                <h5 className="flex items-center gap-2">
                   <ShieldCheck size={20} className="text-primary" /> Admin Console Overview
-                </h4>
+                </h5>
               </div>
               <div className="card-body">
                 <p className="text-muted text-sm leading-relaxed">
@@ -458,55 +453,80 @@ export function AdminDashboard() {
             </div>
 
             {/* Stats grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+            <div className="stats-grid">
               <div 
-                className="card text-center stats-card-clickable" 
-                style={{ padding: '1.5rem', cursor: 'pointer', transition: 'transform 0.2s' }}
+                className="stat-card c-primary cursor-pointer"
                 onClick={() => { setActiveTab('directory'); setFilterRole('all'); }}
               >
-                <Users size={28} className="text-primary mx-auto mb-2" />
-                <h6 className="text-muted text-xs font-semibold uppercase">Total Profiles</h6>
-                <h3 className="font-bold text-2xl mt-1">{stats.totalUsers}</h3>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="stat-label uppercase font-semibold text-xs tracking-wider">Total Profiles</span>
+                    <h3 className="stat-value mt-2">{stats.totalUsers}</h3>
+                  </div>
+                  <div className="stat-icon" style={{ background: 'rgba(37,99,235,0.1)', color: 'var(--naatya-primary)', marginBottom: 0 }}>
+                    <Users size={22} />
+                  </div>
+                </div>
               </div>
 
               <div 
-                className="card text-center stats-card-clickable" 
-                style={{ padding: '1.5rem', cursor: 'pointer', transition: 'transform 0.2s' }}
+                className="stat-card c-info cursor-pointer"
                 onClick={() => { setActiveTab('directory'); setFilterRole('crew'); }}
               >
-                <ShieldCheck size={28} className="text-accent mx-auto mb-2" />
-                <h6 className="text-muted text-xs font-semibold uppercase">Crew Members</h6>
-                <h3 className="font-bold text-2xl mt-1">{stats.totalCrew}</h3>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="stat-label uppercase font-semibold text-xs tracking-wider">Crew Members</span>
+                    <h3 className="stat-value mt-2">{stats.totalCrew}</h3>
+                  </div>
+                  <div className="stat-icon" style={{ background: 'rgba(59,130,246,0.1)', color: 'var(--naatya-info)', marginBottom: 0 }}>
+                    <ShieldCheck size={22} />
+                  </div>
+                </div>
               </div>
 
               <div 
-                className="card text-center stats-card-clickable" 
-                style={{ padding: '1.5rem', cursor: 'pointer', transition: 'transform 0.2s' }}
+                className="stat-card c-success cursor-pointer"
                 onClick={() => { setActiveTab('directory'); setFilterRole('cast'); }}
               >
-                <Users size={28} className="text-success mx-auto mb-2" />
-                <h6 className="text-muted text-xs font-semibold uppercase">Cast Members</h6>
-                <h3 className="font-bold text-2xl mt-1">{stats.totalCast}</h3>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="stat-label uppercase font-semibold text-xs tracking-wider">Cast Members</span>
+                    <h3 className="stat-value mt-2">{stats.totalCast}</h3>
+                  </div>
+                  <div className="stat-icon" style={{ background: 'rgba(5,150,105,0.1)', color: 'var(--naatya-success)', marginBottom: 0 }}>
+                    <Users size={22} />
+                  </div>
+                </div>
               </div>
 
               <div 
-                className="card text-center stats-card-clickable" 
-                style={{ padding: '1.5rem', cursor: 'pointer', transition: 'transform 0.2s' }}
+                className="stat-card c-warning cursor-pointer"
                 onClick={() => { setActiveTab('productions'); }}
               >
-                <Clapperboard size={28} className="text-primary mx-auto mb-2" />
-                <h6 className="text-muted text-xs font-semibold uppercase">Active Productions</h6>
-                <h3 className="font-bold text-2xl mt-1">{stats.totalProductions}</h3>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="stat-label uppercase font-semibold text-xs tracking-wider">Active Productions</span>
+                    <h3 className="stat-value mt-2">{stats.totalProductions}</h3>
+                  </div>
+                  <div className="stat-icon" style={{ background: 'rgba(217,119,6,0.1)', color: 'var(--naatya-accent)', marginBottom: 0 }}>
+                    <Clapperboard size={22} />
+                  </div>
+                </div>
               </div>
 
               <div 
-                className="card text-center stats-card-clickable" 
-                style={{ padding: '1.5rem', borderLeft: '4px solid var(--naatya-danger)', cursor: 'pointer', transition: 'transform 0.2s' }}
+                className="stat-card c-danger cursor-pointer"
                 onClick={() => { setActiveTab('surveillance'); }}
               >
-                <AlertOctagon size={28} className="text-danger mx-auto mb-2" />
-                <h6 className="text-muted text-xs font-semibold uppercase">Security Alarms</h6>
-                <h3 className="font-bold text-2xl mt-1 text-danger">{stats.totalAlarms}</h3>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="stat-label uppercase font-semibold text-xs tracking-wider text-danger">Security Alarms</span>
+                    <h3 className="stat-value mt-2 text-danger">{stats.totalAlarms}</h3>
+                  </div>
+                  <div className="stat-icon" style={{ background: 'rgba(220,38,38,0.1)', color: 'var(--naatya-danger)', marginBottom: 0 }}>
+                    <AlertOctagon size={22} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -515,18 +535,13 @@ export function AdminDashboard() {
         {/* Approvals tab */}
         {activeTab === 'approvals' && (
           <div className="content-area">
-            <div className="card mb-6">
-              <div className="card-header">
-                <h5>Crew Verification & Portfolio Review</h5>
-              </div>
-              <div className="card-body">
-                <p className="text-muted text-sm">
+            <div className="card">
+              <div className="card-header" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem', padding: '1.5rem' }}>
+                <h5 style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--naatya-text)' }}>Crew Verification & Portfolio Review</h5>
+                <p className="text-muted text-xs">
                   Review portfolio link and CV uploads. Approved profiles gain immediate access to technical/creative crew tools.
                 </p>
               </div>
-            </div>
-
-            <div className="card">
               <div className="table-wrap">
                 <table className="naatya-table">
                   <thead>
@@ -585,18 +600,15 @@ export function AdminDashboard() {
         {/* Global surveillance alarms tab */}
         {activeTab === 'surveillance' && (
           <div className="content-area">
-            <div className="card mb-6">
-              <div className="card-header">
-                <h5 className="text-danger flex items-center gap-1"><AlertOctagon size={16} /> Global Security Alarms Log</h5>
-              </div>
-              <div className="card-body">
-                <p className="text-muted text-sm">
+            <div className="card">
+              <div className="card-header" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem', padding: '1.5rem' }}>
+                <h5 className="text-danger flex items-center gap-2 font-semibold">
+                  <AlertOctagon size={18} /> Global Security Alarms Log
+                </h5>
+                <p className="text-muted text-xs">
                   Audits screenshot triggers, screen recording attempts, print requests, and tab blurs across all productions.
                 </p>
               </div>
-            </div>
-
-            <div className="card">
               <div className="table-wrap">
                 <table className="naatya-table text-sm">
                   <thead>
@@ -630,9 +642,14 @@ export function AdminDashboard() {
         {/* Directory Tab */}
         {activeTab === 'directory' && (
           <div className="content-area">
-            <div className="card mb-6">
-              <div className="card-header">
-                <h5>Registered Users Directory</h5>
+            <div className="card">
+              <div className="card-header flex justify-between items-center flex-wrap gap-4" style={{ padding: '1.5rem' }}>
+                <div>
+                  <h4 style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--naatya-text)' }}>Registered Users Directory</h4>
+                  <p className="text-muted text-xs mt-1">
+                    Review and audit all profiles registered in the system, showing their role types, admin flags, and onboarding status.
+                  </p>
+                </div>
                 <div className="flex items-center gap-3 flex-wrap">
                   <div className="search-wrap">
                     <span className="search-icon"><Search size={14} /></span>
@@ -644,7 +661,7 @@ export function AdminDashboard() {
                   </div>
                   <select
                     className="form-input"
-                    style={{ width: '160px', padding: '0.35rem 0.5rem', height: 'auto', fontSize: '0.85rem' }}
+                    style={{ width: '150px', padding: '0.45rem 0.5rem', height: 'auto', fontSize: '0.8rem', borderRadius: '10px' }}
                     value={filterRole}
                     onChange={e => setFilterRole(e.target.value as any)}
                   >
@@ -654,14 +671,7 @@ export function AdminDashboard() {
                   </select>
                 </div>
               </div>
-              <div className="card-body">
-                <p className="text-muted text-sm">
-                  Review and audit all profiles registered in the system, showing their role types, admin flags, and onboarding status.
-                </p>
-              </div>
-            </div>
 
-            <div className="card">
               <div className="table-wrap">
                 <table className="naatya-table">
                   <thead>
@@ -735,27 +745,28 @@ export function AdminDashboard() {
         {/* Productions tab */}
         {activeTab === 'productions' && (
           <div className="content-area">
-            <div className="card mb-6">
-              <div className="card-header">
-                <h5><Clapperboard size={16} className="text-primary" /> Manage Active Productions</h5>
+            <div className="card">
+              <div className="card-header flex justify-between items-center flex-wrap gap-4" style={{ padding: '1.5rem' }}>
+                <div>
+                  <h4 style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--naatya-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Clapperboard size={18} className="text-primary" /> Manage Active Productions
+                  </h4>
+                  <p className="text-muted text-xs mt-1">
+                    Create, rename, or delete production rooms. Note that deleting a production deletes all its associated rehearsals, inventory items, scripts, and logs.
+                  </p>
+                </div>
                 <button
                   className="btn-primary"
                   onClick={() => {
                     setNewProdName('');
                     setShowAddProdModal(true);
                   }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: '10px' }}
                 >
                   <Plus size={15} /> Add Production
                 </button>
               </div>
-              <div className="card-body">
-                <p className="text-muted text-sm">
-                  Create, rename, or delete production rooms. Note that deleting a production deletes all its associated rehearsals, inventory items, scripts, and logs.
-                </p>
-              </div>
-            </div>
 
-            <div className="card">
               <div className="table-wrap">
                 <table className="naatya-table">
                   <thead>
@@ -821,6 +832,7 @@ export function AdminDashboard() {
           onClose={() => setEditUser(null)}
           onSave={handleSaveUser}
           saveLabel={saving ? 'Saving...' : 'Save Changes'}
+          size="lg"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '70vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
             <div>

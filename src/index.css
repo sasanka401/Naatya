@@ -472,6 +472,8 @@ a { text-decoration: none; color: inherit; }
 /* ---- Main ---- */
 .main-content {
   margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+  max-width: calc(100% - var(--sidebar-width));
   flex: 1;
   min-height: 100vh;
   transition: var(--transition);
@@ -634,6 +636,7 @@ table.naatya-table {
   border-bottom: 1px solid var(--naatya-border);
   padding: 0.8rem 1rem;
   vertical-align: middle;
+  white-space: nowrap;
 }
 
 .naatya-table tbody tr { transition: var(--transition); }
@@ -935,7 +938,7 @@ table.naatya-table {
 @media (max-width: 991px) {
   .sidebar { transform: translateX(-100%); }
   .sidebar.open { transform: translateX(0); }
-  .main-content { margin-left: 0; }
+  .main-content { margin-left: 0; width: 100%; max-width: 100%; }
   .hamburger { display: flex; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .two-col { grid-template-columns: 1fr; }
@@ -949,6 +952,10 @@ table.naatya-table {
   .card-header { flex-direction: column; align-items: flex-start; }
   .content-area { padding: 1rem; }
   .login-card { padding: 2rem 1.5rem; margin: 1rem; }
+}
+
+@media (max-width: 500px) {
+  .stats-grid { grid-template-columns: 1fr; }
 }
 
 /* ---- Misc ---- */
@@ -1206,6 +1213,55 @@ table.naatya-table {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
+}
+
+/* ---- Dark Sidebar & Admin Panel Styling ---- */
+.sidebar-dark {
+  background: #0f172a !important;
+  border-right: 1px solid #1e293b !important;
+}
+.sidebar-dark .sidebar-brand {
+  border-bottom: 1px solid #1e293b;
+}
+.sidebar-dark .sidebar-brand-text {
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.sidebar-dark .sidebar-brand-icon {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+.sidebar-dark .nav-section {
+  color: #475569;
+}
+.sidebar-dark .sidebar-link {
+  color: #94a3b8;
+  border-left-width: 4px;
+}
+.sidebar-dark .sidebar-link:hover {
+  color: #f1f5f9;
+  background: #1e293b;
+  border-left-color: #3b82f6;
+}
+.sidebar-dark .sidebar-link.active {
+  color: #ffffff;
+  background: #1e293b;
+  border-left-color: #3b82f6;
+}
+.sidebar-dark .sidebar-footer {
+  border-top: 1px solid #1e293b;
+}
+
+/* ---- Dynamic Modal Sizing ---- */
+.modal-box.modal-lg {
+  max-width: 680px;
+}
+.modal-box.modal-md {
+  max-width: 480px;
+}
+.modal-box.modal-sm {
+  max-width: 380px;
 }
 
 
